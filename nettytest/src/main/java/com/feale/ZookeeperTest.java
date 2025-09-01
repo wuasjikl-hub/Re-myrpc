@@ -1,9 +1,6 @@
 package com.feale;
 
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
@@ -13,15 +10,16 @@ import java.util.concurrent.CountDownLatch;
 
 public class ZookeeperTest {
     private ZooKeeper zooKeeper;
-    private CountDownLatch connectionLatch = new CountDownLatch(1);
+    private CountDownLatch connectionLatch = new CountDownLatch(1);//同步工具，用于等待连接成功
     // 连接 ZooKeeper 服务器
     public void connect(String hosts, int sessionTimeout) throws IOException, InterruptedException {
         zooKeeper = new ZooKeeper(hosts, sessionTimeout, event -> {
-            if (event.getState() == Watcher.Event.KeeperState.SyncConnected) {
-                connectionLatch.countDown();
+            //event.getState()//获取连接状态
+            if (event.getState() == Watcher.Event.KeeperState.SyncConnected) {//连接成功
+                connectionLatch.countDown();//释放锁
             }
         });
-        connectionLatch.await();
+        connectionLatch.await();//等待连接成功计数器为0
         this.close();
         System.out.println("Connected to ZooKeeper successfully");
     }
@@ -33,6 +31,17 @@ public class ZookeeperTest {
         }
     }
     // 创建节点
+
+    /**
+     *
+     * @param path //节点路径
+     * @param data //节点数据
+     * @param acl  //访问控制列表
+     * @param createMode //创建模式
+     * @return
+     * @throws KeeperException
+     * @throws InterruptedException
+     */
     public String createNode(String path, byte[] data, List<ACL> acl, CreateMode createMode)
             throws KeeperException, InterruptedException {
         return zooKeeper.create(path, data, acl, createMode);
@@ -51,7 +60,8 @@ public class ZookeeperTest {
 
     // 设置节点数据
     public Stat setData(String path, byte[] data) throws KeeperException, InterruptedException {
-        return zooKeeper.setData(path, data, -1);
+        return zooKeeper.setData(path, data, -1);//乐观锁当当前znode的数据版本号等于我提供的这个数字时才行。
+                                                        //-1表示不检查版本号
     }
 
     // 删除节点
@@ -65,27 +75,28 @@ public class ZookeeperTest {
     }
 
     // 添加监听器
+    //Watcher是一次性的，一旦触发，就会被移除，再次使用需要重新注册
     public void addWatcher(String path) throws KeeperException, InterruptedException {
-        zooKeeper.exists(path, event -> {
-            System.out.println("Watcher received event: " + event);
-
-            // 重新注册监听器以继续监听
-            try {
-                zooKeeper.exists(path, watchedEvent -> {
-                    try {
-                        addWatcher(path);
-                    } catch (KeeperException | InterruptedException e) {
-                        // 处理异常，可以选择重试或记录日志
-                        System.err.println("Failed to re-register watcher: " + e.getMessage());
-                        // 如果是连接问题，可以尝试重新连接
-                        if (e instanceof KeeperException.ConnectionLossException) {
-                            System.out.println("Connection loss, reconnecting...");
+        zooKeeper.exists(path, new Watcher() {//如果该路径节点发生变化，则注册监听器
+            @Override
+            public void process(WatchedEvent event) {
+                System.out.println("Watcher received event: " + event);
+                try {
+                    zooKeeper.exists(path, this); // 使用this重新注册
+                } catch (KeeperException | InterruptedException e) {
+                    System.err.println("Failed to re-register watcher: " + e.getMessage());
+                    // 处理异常，可以添加重试逻辑
+                    if (e instanceof KeeperException.ConnectionLossException) {
+                        try {
+                            Thread.sleep(1000); // 等待后重试
+                            zooKeeper.exists(path, this);
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
                         }
                     }
-                });
-            } catch (KeeperException | InterruptedException e) {
-                System.err.println("Error in watcher: " + e.getMessage());
+                }
             }
         });
+
     }
 }
