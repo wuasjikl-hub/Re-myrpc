@@ -55,7 +55,7 @@ public class ZookeeperTest {
 
     // 获取节点数据
     public byte[] getData(String path) throws KeeperException, InterruptedException {
-        return zooKeeper.getData(path, false, null);
+        return zooKeeper.getData(path, false, null);//watch是表示是否要监听，stat是可以传入一个Stat对象用来获取节点的属性信息
     }
 
     // 设置节点数据
@@ -71,7 +71,7 @@ public class ZookeeperTest {
 
     // 获取子节点列表
     public List<String> getChildren(String path) throws KeeperException, InterruptedException {
-        return zooKeeper.getChildren(path, false);
+        return zooKeeper.getChildren(path, false);//watch强调的是子节点的增加或删除等
     }
 
     // 添加监听器

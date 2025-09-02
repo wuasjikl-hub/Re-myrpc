@@ -11,6 +11,11 @@
 
     <modules>
         <module>nettytest</module>
+        <module>myrpc-demo</module>
+        <module>myrpc-demo/myrpc-providerdemo</module>
+        <module>myrpc-demo/myrpc-consumerdemo</module>
+        <module>Myrpc-core</module>
+        <module>Myrpc-api</module>
     </modules>
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -18,9 +23,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <netty-version>4.1.107.Final</netty-version>
         <junit-version>4.13.2</junit-version>
-        <lombok-version>1.18.22</lombok-version>
+        <lombok-version>1.18.26</lombok-version>
         <fastjson-version>1.2.73</fastjson-version>
         <zookeeper-version>3.8.1</zookeeper-version>
+        <logback-version>1.4.8</logback-version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -49,6 +55,11 @@
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
                 <version>${zookeeper-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback-version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
