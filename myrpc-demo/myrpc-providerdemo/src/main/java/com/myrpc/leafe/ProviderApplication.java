@@ -1,13 +1,22 @@
 package com.myrpc.leafe;
 
 import com.myrpc.leafe.impl.GreetingServiceimpl;
+import com.myrpc.leafe.impl.HelloServiceimpl;
 
-public class Application {
+public class ProviderApplication {
     public static void main(String[] args) {
         //定义具体的服务
         ServiceConfig<GreetingService> serviceConfig = new ServiceConfig<>();
         serviceConfig.setInterface(GreetingService.class);
         serviceConfig.setRef(new GreetingServiceimpl());
+
+        ServiceConfig<HelloService> helloServiceConfig = new ServiceConfig<>();
+        helloServiceConfig.setInterface(HelloService.class);
+        helloServiceConfig.setRef(new HelloServiceimpl());
+
+
+
+
         //启动rpc服务
         MyRpcBootstrap.getInstance()
                 .application("myrpc-provider")//应用名
