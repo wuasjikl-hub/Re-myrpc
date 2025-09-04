@@ -1,10 +1,22 @@
 package com.myrpc.leafe;
 
+import com.myrpc.leafe.Handlers.client.MessageResponseHandler;
 import com.myrpc.leafe.Registry.registry;
+import com.myrpc.leafe.common.Constant;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -25,6 +37,12 @@ public class MyRpcBootstrap{
     private ProtocolConfig protocol;
     // 注册中心
     private registry localregistry;
+    // 响应的缓存
+    public static final Map<Long, CompletableFuture<Object>> PENDING_REQUESTS = new ConcurrentHashMap<>();
+
+
+    //创建连接的缓存
+    public final static Map<InetSocketAddress, Channel> CHANNEL_CACHE = new ConcurrentHashMap<>(16);
 
     // 维护已经发布且暴露的服务列表 key-> interface的全限定名  value -> ServiceConfig
     //这里不能用类级别的泛型参数，因为这个类是静态的要用通配符
@@ -100,11 +118,44 @@ public class MyRpcBootstrap{
     }
 
     public void start() {
+        //加入netty操作
+        NioEventLoopGroup bossGroup = new NioEventLoopGroup();//监听连接
+        NioEventLoopGroup workerGroup = new NioEventLoopGroup();//处理事件
+        //用final修饰，使其不能被修改并能在匿名类中使用
+        final ServerBootstrap serverBootstrap = new ServerBootstrap();//引导类
+        serverBootstrap
+                .group(bossGroup, workerGroup)//绑定线程组
+                .channel(NioServerSocketChannel.class)//指定io模型为nio
+                .option(ChannelOption.SO_BACKLOG,1024)//表示为ServerSocketChannel设置监听队列的大小可允许等待的连接数量
+                .childOption(ChannelOption.SO_KEEPALIVE,true)//为连接后的SocketChannel启用心跳机制
+                .childOption(ChannelOption.TCP_NODELAY,true)//禁用Nagle算法
+                .childHandler(new ChannelInitializer<NioSocketChannel>() {
+                  @Override
+                  protected void initChannel(NioSocketChannel ch) throws Exception {
+                      ch.pipeline().addLast(MessageResponseHandler.INSTANCE);
+                  }
+              });
+        ChannelFuture channelFuture = bind(serverBootstrap, Constant.PORT);//绑定端口
+        //添加JVM关闭钩子
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            bossGroup.shutdownGracefully();
+            workerGroup.shutdownGracefully();
+        }));
+        // 等待直到服务器通道关闭
         try {
-            Thread.sleep(1000000000);
-        }catch (InterruptedException e){
+            channelFuture.channel().closeFuture().sync();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+    private static ChannelFuture bind(final ServerBootstrap serverBootstrap, final int port){
+        return serverBootstrap.bind(port).addListener(future -> {
+            if(future.isSuccess()){
+                log.info("启动服务成功，端口:{}",port);
+            }else{
+                log.error("启动服务失败，端口:{}",port);
+            }
+        });
     }
 
     public <T>MyRpcBootstrap reference(ReferenceConfig<T> referenceConfig) {
@@ -112,3 +163,4 @@ public class MyRpcBootstrap{
         return this;
     }
 }
+

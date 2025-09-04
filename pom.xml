@@ -27,6 +27,7 @@
         <fastjson-version>1.2.73</fastjson-version>
         <zookeeper-version>3.8.1</zookeeper-version>
         <logback-version>1.4.8</logback-version>
+        <fastjson.version>1.2.29</fastjson.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -61,7 +62,13 @@
                 <artifactId>logback-classic</artifactId>
                 <version>${logback-version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson.version}</version>
+            </dependency>
         </dependencies>
+
     </dependencyManagement>
 
 </project>
