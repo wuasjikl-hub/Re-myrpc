@@ -1,6 +1,7 @@
-package com.myrpc.leafe.Handlers;
+package com.myrpc.leafe.Handlers.client.Initializer;
 
-import com.myrpc.leafe.Handlers.server.MessageRequestHandler;
+import com.myrpc.leafe.Handlers.PacketCodecHandler;
+import com.myrpc.leafe.Handlers.client.MessageResponseHandler;
 import com.myrpc.leafe.MyRpcBootstrap;
 import com.myrpc.leafe.common.Constant;
 import io.netty.bootstrap.Bootstrap;
@@ -11,6 +12,8 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -33,10 +36,12 @@ public class NettyBootstrapInitializer {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         // 添加编解码器和处理器
-                        ch.pipeline().addLast(MessageRequestHandler.INSTANCE);
-//                        ch.pipeline().addLast(new RpcEncoder(RpcRequest.class));
-//                        ch.pipeline().addLast(new RpcDecoder(RpcResponse.class));
-//                        ch.pipeline().addLast(new RpcClientHandler());
+                        ch.pipeline()
+                                //netty日志处理器
+                                .addLast(new LoggingHandler(LogLevel.DEBUG))
+                                .addLast(PacketCodecHandler.INSTANCE)//编码器
+                                .addLast(MessageResponseHandler.INSTANCE);
+
                     }
                 });
         // 注册关闭钩子

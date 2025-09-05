@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 /*
  * @Description:描述请求方法
  */
@@ -12,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class rpcRequestPayload {
+public class rpcRequestPayload implements Serializable {
     //1.接口名
     private String interfaceName;
     //2.方法名

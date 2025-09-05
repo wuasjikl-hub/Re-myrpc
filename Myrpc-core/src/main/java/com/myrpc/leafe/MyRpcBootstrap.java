@@ -1,16 +1,11 @@
 package com.myrpc.leafe;
 
-import com.myrpc.leafe.Handlers.client.MessageResponseHandler;
+import com.myrpc.leafe.Handlers.server.Initializer.NettyServerBootstrapInitializer;
 import com.myrpc.leafe.Registry.registry;
 import com.myrpc.leafe.common.Constant;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
@@ -118,29 +113,8 @@ public class MyRpcBootstrap{
     }
 
     public void start() {
-        //加入netty操作
-        NioEventLoopGroup bossGroup = new NioEventLoopGroup();//监听连接
-        NioEventLoopGroup workerGroup = new NioEventLoopGroup();//处理事件
-        //用final修饰，使其不能被修改并能在匿名类中使用
-        final ServerBootstrap serverBootstrap = new ServerBootstrap();//引导类
-        serverBootstrap
-                .group(bossGroup, workerGroup)//绑定线程组
-                .channel(NioServerSocketChannel.class)//指定io模型为nio
-                .option(ChannelOption.SO_BACKLOG,1024)//表示为ServerSocketChannel设置监听队列的大小可允许等待的连接数量
-                .childOption(ChannelOption.SO_KEEPALIVE,true)//为连接后的SocketChannel启用心跳机制
-                .childOption(ChannelOption.TCP_NODELAY,true)//禁用Nagle算法
-                .childHandler(new ChannelInitializer<NioSocketChannel>() {
-                  @Override
-                  protected void initChannel(NioSocketChannel ch) throws Exception {
-                      ch.pipeline().addLast(MessageResponseHandler.INSTANCE);
-                  }
-              });
+        ServerBootstrap serverBootstrap = NettyServerBootstrapInitializer.getInstance().getBootstrap();
         ChannelFuture channelFuture = bind(serverBootstrap, Constant.PORT);//绑定端口
-        //添加JVM关闭钩子
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            bossGroup.shutdownGracefully();
-            workerGroup.shutdownGracefully();
-        }));
         // 等待直到服务器通道关闭
         try {
             channelFuture.channel().closeFuture().sync();

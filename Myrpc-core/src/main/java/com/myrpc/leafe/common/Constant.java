@@ -12,7 +12,9 @@ public class Constant {
     public static final int CLIENT_CONNECT_TIMEOUT = 5000;
     //设置客户端最大重连次数
     public static final int CLIENT_MAX_RETRY = 3;
-
+    //服务提供方默认端口
     public static final int PORT = 8000;
-
+    //
+    public static final byte REQUEST = 0x01;
+    public static final byte RESPONSE = 0x02;
 }

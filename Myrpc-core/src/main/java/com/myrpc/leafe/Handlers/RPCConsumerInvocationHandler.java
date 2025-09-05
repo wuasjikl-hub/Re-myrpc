@@ -1,5 +1,6 @@
 package com.myrpc.leafe.Handlers;
 
+import com.myrpc.leafe.Handlers.client.Initializer.NettyBootstrapInitializer;
 import com.myrpc.leafe.MyRpcBootstrap;
 import com.myrpc.leafe.Registry.registry;
 import com.myrpc.leafe.common.Constant;
@@ -26,8 +27,6 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
     public RPCConsumerInvocationHandler(Class<?> anInterface, registry anRegistry) {
         this.anInterface = anInterface;
         this.anRegistry = anRegistry;
-        // 初始化一次，避免重复创建
-
     }
 
     @Override
@@ -37,14 +36,22 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
         log.info("可用服务提供者地址：{}",addresses);
         //2.从缓存中获取或创建channel
         Channel channel = getOrCreateChannel(addresses.get(0));
+
         //3.创建rpc请求
-        rpcRequestPacket requestPacket = rpcRequestPacket.builder()
-                .requestId(1L)
-                .compressType((byte) 1)
-                .requestType((byte) 1)
-                .serializerType((byte) 1)
-                .payload(new rpcRequestPayload(anInterface.getName(), method.getName(), method.getParameterTypes(), args, method.getReturnType()))
+        //先封装负载
+        rpcRequestPayload requestPayload = rpcRequestPayload.builder()
+                .interfaceName(anInterface.getName())
+                .methodName(method.getName())
+                .parameterTypes(method.getParameterTypes())
+                .parameters(args)
+                .returnType(method.getReturnType())
                 .build();
+        rpcRequestPacket requestPacket = new rpcRequestPacket((byte) 1,  // requestType
+                (byte) 1,  // compressType
+                (byte) 1,  // serializeType
+                1L,     // requestId
+                requestPayload);
+
         //4.发送请求
         CompletableFuture<Object> completableFuture = new CompletableFuture<>();
         //添加监听器，当请求发送成功时，将结果保存到CompletableFuture中
@@ -57,6 +64,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
         });
         //5.这里会阻塞，等待客户端调用completed方法返回结果
         return completableFuture.get(10, TimeUnit.SECONDS);
+        //return null;
     }
     //获取或创建连接
     private Channel getOrCreateChannel(InetSocketAddress address){
