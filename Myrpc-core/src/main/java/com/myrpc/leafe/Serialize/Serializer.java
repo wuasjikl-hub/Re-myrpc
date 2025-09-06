@@ -17,4 +17,6 @@ public interface Serializer {
      * @return 目标实例
      */
     <T> T deserialize(byte[] bytes, Class<T> clazz);
+
+    byte getSerializerType();
 }

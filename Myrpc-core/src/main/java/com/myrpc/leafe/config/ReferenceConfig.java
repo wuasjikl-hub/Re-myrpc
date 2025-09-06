@@ -1,7 +1,7 @@
-package com.myrpc.leafe;
+package com.myrpc.leafe.config;
 
-import com.myrpc.leafe.Handlers.RPCConsumerInvocationHandler;
-import com.myrpc.leafe.Registry.registry;
+import com.myrpc.leafe.Handlers.client.RPCConsumerInvocationHandler;
+import com.myrpc.leafe.Registry.Registry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Proxy;
@@ -10,7 +10,7 @@ import java.lang.reflect.Proxy;
 public class ReferenceConfig<T> {
     private Class<T> anInterface;//接口
 
-    private registry anRegistry;//注册中心
+    private Registry anRegistry;//注册中心
     public T get() {
         //这里用动态代理生成代理对象
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -27,11 +27,11 @@ public class ReferenceConfig<T> {
         return anInterface;
     }
 
-    public registry getAnRegistry() {
+    public Registry getAnRegistry() {
         return anRegistry;
     }
 
-    public void setAnRegistry(registry anRegistry) {
+    public void setAnRegistry(Registry anRegistry) {
         this.anRegistry = anRegistry;
     }
 }

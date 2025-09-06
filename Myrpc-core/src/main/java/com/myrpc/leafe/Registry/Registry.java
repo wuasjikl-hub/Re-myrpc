@@ -1,6 +1,6 @@
 package com.myrpc.leafe.Registry;
 
-import com.myrpc.leafe.ServiceConfig;
+import com.myrpc.leafe.config.ServiceConfig;
 
 import java.net.InetSocketAddress;
 import java.util.List;
@@ -12,7 +12,7 @@ import java.util.List;
  * @Version: v1.0
  * 维护了服务注册方法和服务发现方法
  */
-public interface registry {
+public interface Registry {
     /**
      * 注册服务
      * @param serviceConfig

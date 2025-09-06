@@ -1,9 +1,12 @@
-package com.myrpc.leafe.Handlers;
+package com.myrpc.leafe.Handlers.client;
 
-import com.myrpc.leafe.Handlers.client.Initializer.NettyBootstrapInitializer;
-import com.myrpc.leafe.MyRpcBootstrap;
-import com.myrpc.leafe.Registry.registry;
+import com.myrpc.leafe.Registry.Registry;
+import com.myrpc.leafe.bootatrap.Initializer.NettyBootstrapInitializer;
+import com.myrpc.leafe.bootatrap.MyRpcBootstrap;
 import com.myrpc.leafe.common.Constant;
+import com.myrpc.leafe.enumeration.CompressorType;
+import com.myrpc.leafe.enumeration.RequestType;
+import com.myrpc.leafe.enumeration.SerializerType;
 import com.myrpc.leafe.exceptions.LinktoProviderexception;
 import com.myrpc.leafe.packet.client.rpcRequestPacket;
 import com.myrpc.leafe.packet.client.rpcRequestPayload;
@@ -22,9 +25,9 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class RPCConsumerInvocationHandler implements InvocationHandler {
     private final Class<?> anInterface;//接口
-    private final registry anRegistry;//注册中心
+    private final Registry anRegistry;//注册中心
 
-    public RPCConsumerInvocationHandler(Class<?> anInterface, registry anRegistry) {
+    public RPCConsumerInvocationHandler(Class<?> anInterface, Registry anRegistry) {
         this.anInterface = anInterface;
         this.anRegistry = anRegistry;
     }
@@ -33,10 +36,9 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         //1.发现服务
         List<InetSocketAddress> addresses = anRegistry.discovery(anInterface.getName());
-        log.info("可用服务提供者地址：{}",addresses);
+        log.debug("可用服务提供者地址：{}",addresses);
         //2.从缓存中获取或创建channel
         Channel channel = getOrCreateChannel(addresses.get(0));
-
         //3.创建rpc请求
         //先封装负载
         rpcRequestPayload requestPayload = rpcRequestPayload.builder()
@@ -46,10 +48,10 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 .parameters(args)
                 .returnType(method.getReturnType())
                 .build();
-        rpcRequestPacket requestPacket = new rpcRequestPacket((byte) 1,  // requestType
-                (byte) 1,  // compressType
-                (byte) 1,  // serializeType
-                1L,     // requestId
+        rpcRequestPacket requestPacket = new rpcRequestPacket(RequestType.REQUEST.getCode(),  // requestType
+                CompressorType.COMPRESSTYPE_GZIP.getCode(),  // compressType
+                SerializerType.SERIALIZERTYPE_HESSION.getCode(),  // serializeType
+                MyRpcBootstrap.idGenerator.getId(),    // requestId
                 requestPayload);
 
         //4.发送请求

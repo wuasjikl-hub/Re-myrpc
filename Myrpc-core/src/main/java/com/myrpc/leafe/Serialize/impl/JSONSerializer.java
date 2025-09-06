@@ -3,6 +3,7 @@ package com.myrpc.leafe.Serialize.impl;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONReader;
 import com.myrpc.leafe.Serialize.Serializer;
+import com.myrpc.leafe.enumeration.SerializerType;
 import com.myrpc.leafe.packet.Packet;
 import com.myrpc.leafe.packet.client.rpcRequestPacket;
 import com.myrpc.leafe.packet.client.rpcRequestPayload;
@@ -21,7 +22,7 @@ public class JSONSerializer implements Serializer {
         byte[] res = JSON.toJSONBytes(object);
         //byte[] res = SerializeUtil.serialize(object);
         if (log.isDebugEnabled()) {
-            log.debug("对象【{}】已经完成了序列化操作，序列化后的字节数为【{}】", object, res.length);
+            log.debug("对象【{}】json序列化成功，序列化后的字节数为【{}】", object, res.length);
         }
         return res;
     }
@@ -36,6 +37,12 @@ public class JSONSerializer implements Serializer {
         }
         return t;
     }
+
+    @Override
+    public byte getSerializerType() {
+        return SerializerType.SERIALIZERTYPE_JSON.getCode();
+    }
+
     public static Object extractPayload(Packet packet) {
         if (packet instanceof rpcRequestPacket) {
             return ((rpcRequestPacket) packet).getPayload();

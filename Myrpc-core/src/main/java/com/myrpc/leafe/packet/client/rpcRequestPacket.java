@@ -21,4 +21,9 @@ public class rpcRequestPacket extends Packet {
         super(requestType, compressType, serializeType, requestId);
         this.payload = payload;
     }
+
+    public rpcRequestPacket(byte request, Long requestid, rpcRequestPayload requestPayload) {
+        super(request, requestid);
+        this.payload = requestPayload;
+    }
 }

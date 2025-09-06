@@ -1,8 +1,9 @@
-package com.myrpc.leafe.Handlers.client.Initializer;
+package com.myrpc.leafe.bootatrap.Initializer;
 
 import com.myrpc.leafe.Handlers.PacketCodecHandler;
+import com.myrpc.leafe.Handlers.Spliter;
 import com.myrpc.leafe.Handlers.client.MessageResponseHandler;
-import com.myrpc.leafe.MyRpcBootstrap;
+import com.myrpc.leafe.bootatrap.MyRpcBootstrap;
 import com.myrpc.leafe.common.Constant;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -39,7 +40,8 @@ public class NettyBootstrapInitializer {
                         ch.pipeline()
                                 //netty日志处理器
                                 .addLast(new LoggingHandler(LogLevel.DEBUG))
-                                .addLast(PacketCodecHandler.INSTANCE)//编码器
+                                .addLast(new Spliter())//拆包器
+                                .addLast(PacketCodecHandler.INSTANCE)//编码器&解码器
                                 .addLast(MessageResponseHandler.INSTANCE);
 
                     }

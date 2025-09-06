@@ -1,7 +1,7 @@
 package com.myrpc.leafe.Registry.impl;
 
 import com.myrpc.leafe.Registry.AbstractRegistry;
-import com.myrpc.leafe.ServiceConfig;
+import com.myrpc.leafe.config.ServiceConfig;
 import com.myrpc.leafe.common.Constant;
 import com.myrpc.leafe.exceptions.NotFoundedEnableNodeException;
 import com.myrpc.leafe.utils.net.NetUtil;

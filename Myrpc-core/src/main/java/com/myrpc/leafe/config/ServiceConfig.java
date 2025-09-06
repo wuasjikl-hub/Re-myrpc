@@ -1,4 +1,4 @@
-package com.myrpc.leafe;
+package com.myrpc.leafe.config;
 
 public class ServiceConfig<T> {
     private Class<T> serviceInterface;

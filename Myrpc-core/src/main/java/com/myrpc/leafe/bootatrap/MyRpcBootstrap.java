@@ -1,8 +1,12 @@
-package com.myrpc.leafe;
+package com.myrpc.leafe.bootatrap;
 
-import com.myrpc.leafe.Handlers.server.Initializer.NettyServerBootstrapInitializer;
-import com.myrpc.leafe.Registry.registry;
+import com.myrpc.leafe.bootatrap.Initializer.NettyServerBootstrapInitializer;
 import com.myrpc.leafe.common.Constant;
+import com.myrpc.leafe.config.ProtocolConfig;
+import com.myrpc.leafe.config.ReferenceConfig;
+import com.myrpc.leafe.config.RegistryConfig;
+import com.myrpc.leafe.config.ServiceConfig;
+import com.myrpc.leafe.utils.IdGenerator;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -30,8 +34,8 @@ public class MyRpcBootstrap{
     private RegistryConfig registryConfig;
     // 协议
     private ProtocolConfig protocol;
-    // 注册中心
-    private registry localregistry;
+
+    public static final IdGenerator idGenerator = new IdGenerator(1, 1);
     // 响应的缓存
     public static final Map<Long, CompletableFuture<Object>> PENDING_REQUESTS = new ConcurrentHashMap<>();
 
@@ -41,7 +45,7 @@ public class MyRpcBootstrap{
 
     // 维护已经发布且暴露的服务列表 key-> interface的全限定名  value -> ServiceConfig
     //这里不能用类级别的泛型参数，因为这个类是静态的要用通配符
-    private static final Map<String, ServiceConfig<?>> SERVER_MAP = new ConcurrentHashMap<>();
+    public static final Map<String, ServiceConfig<?>> SERVER_MAP = new ConcurrentHashMap<>();
 
     private MyRpcBootstrap() {
         System.out.println("MyRpcBootstrap init");
@@ -66,9 +70,9 @@ public class MyRpcBootstrap{
     public MyRpcBootstrap registry(RegistryConfig registryConfig) {
         this.registryConfig = registryConfig;
         if(log.isDebugEnabled()){
-            log.debug("当前注册中心为:{}",registryConfig.getRegistrytype());
+            log.debug("当前注册中心为:{}",registryConfig.getRegistryType());
         }
-        localregistry=registryConfig.getRegistry();
+        //localregistry=registryConfig.getRegistry();
         return this;
     }
     /**
@@ -88,7 +92,8 @@ public class MyRpcBootstrap{
      */
     public <T>MyRpcBootstrap service(ServiceConfig<T> serviceConfig) {
         //todo 等会放到共同的配置类中
-        localregistry.register(serviceConfig);
+        this.registryConfig.getRegistry().register(serviceConfig);
+        //localregistry.register(serviceConfig);
         if(log.isDebugEnabled()){
             log.debug("服务:{}已经被注册",serviceConfig.getInterface().getName());
         }
@@ -103,7 +108,7 @@ public class MyRpcBootstrap{
      */
     public <T>MyRpcBootstrap service(List<ServiceConfig<T>> serviceConfigList){
         serviceConfigList.forEach(serviceConfig -> {
-            localregistry.register(serviceConfig);
+            this.registryConfig.getRegistry().register(serviceConfig);
             if(log.isDebugEnabled()){
                 log.debug("服务:{}已经被注册",serviceConfig.getInterface().getName());
             }
@@ -133,8 +138,11 @@ public class MyRpcBootstrap{
     }
 
     public <T>MyRpcBootstrap reference(ReferenceConfig<T> referenceConfig) {
-        referenceConfig.setAnRegistry(localregistry);
+        referenceConfig.setAnRegistry(this.registryConfig.getRegistry());
         return this;
+    }
+    public RegistryConfig getregistryConfig(){
+        return registryConfig;
     }
 }
 

@@ -22,4 +22,9 @@ public abstract class Packet {
         this.serializeType = serializeType;
         this.requestId = requestId;
     }
+
+    public Packet(byte request, Long requestid) {
+        this.requestType = request;
+        this.requestId = requestid;
+    }
 }

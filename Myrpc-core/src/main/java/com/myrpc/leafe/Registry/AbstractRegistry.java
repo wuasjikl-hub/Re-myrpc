@@ -4,6 +4,6 @@ package com.myrpc.leafe.Registry;
  * @Author: leafe
  * @Date: 2022-03-07
  */
-public abstract class AbstractRegistry implements  registry{
+public abstract class AbstractRegistry implements Registry {
 
 }

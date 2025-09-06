@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.CompletableFuture;
 
-import static com.myrpc.leafe.MyRpcBootstrap.PENDING_REQUESTS;
+import static com.myrpc.leafe.bootatrap.MyRpcBootstrap.PENDING_REQUESTS;
 
 @Slf4j
 @ChannelHandler.Sharable    // 标记该Handler可以多个Channel共享

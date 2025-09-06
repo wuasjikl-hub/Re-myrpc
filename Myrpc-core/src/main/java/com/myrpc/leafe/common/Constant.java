@@ -15,6 +15,7 @@ public class Constant {
     //服务提供方默认端口
     public static final int PORT = 8000;
     //
-    public static final byte REQUEST = 0x01;
-    public static final byte RESPONSE = 0x02;
+
+
+
 }
