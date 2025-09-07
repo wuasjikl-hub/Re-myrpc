@@ -22,7 +22,7 @@ public class RegistryConfig {
         return registrytype;
     }
 
-    public Registry getRegistry() {
+    public Registry getRegistry() {//使用懒加载模式
         //要加锁
         if(registry== null){
             synchronized (this){

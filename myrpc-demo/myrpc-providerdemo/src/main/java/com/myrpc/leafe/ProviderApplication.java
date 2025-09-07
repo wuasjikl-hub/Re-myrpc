@@ -17,10 +17,6 @@ public class ProviderApplication {
         ServiceConfig<HelloService> helloServiceConfig = new ServiceConfig<>();
         helloServiceConfig.setInterface(HelloService.class);
         helloServiceConfig.setRef(new HelloServiceimpl());
-
-
-
-
         //启动rpc服务
         MyRpcBootstrap.getInstance()
                 .application("myrpc-provider")//应用名

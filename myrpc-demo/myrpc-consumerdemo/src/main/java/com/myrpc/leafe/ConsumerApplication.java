@@ -15,6 +15,8 @@ public class ConsumerApplication {
                 .registry(new RegistryConfig("zookeeper","127.0.0.1:2181"))//注册中心
                 .reference(referenceConfig);    //引用服务
         GreetingService service = referenceConfig.get();//获取代理对象
-        log.info("service.hello()"+service.hello("leafe"));
+        for (int i = 0; i < 4; i++) {
+            log.info("service.hello()"+service.hello("leafe"));
+        }
     }
 }

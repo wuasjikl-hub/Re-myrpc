@@ -3,9 +3,7 @@ package com.myrpc.leafe.Handlers.client;
 import com.myrpc.leafe.Registry.Registry;
 import com.myrpc.leafe.bootatrap.Initializer.NettyBootstrapInitializer;
 import com.myrpc.leafe.bootatrap.MyRpcBootstrap;
-import com.myrpc.leafe.common.Constant;
 import com.myrpc.leafe.enumeration.CompressorType;
-import com.myrpc.leafe.enumeration.RequestType;
 import com.myrpc.leafe.enumeration.SerializerType;
 import com.myrpc.leafe.exceptions.LinktoProviderexception;
 import com.myrpc.leafe.packet.client.rpcRequestPacket;
@@ -18,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -34,25 +31,17 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        //1.发现服务
-        List<InetSocketAddress> addresses = anRegistry.discovery(anInterface.getName());
-        log.debug("可用服务提供者地址：{}",addresses);
-        //2.从缓存中获取或创建channel
-        Channel channel = getOrCreateChannel(addresses.get(0));
-        //3.创建rpc请求
+
+        //1.创建rpc请求
         //先封装负载
-        rpcRequestPayload requestPayload = rpcRequestPayload.builder()
-                .interfaceName(anInterface.getName())
-                .methodName(method.getName())
-                .parameterTypes(method.getParameterTypes())
-                .parameters(args)
-                .returnType(method.getReturnType())
-                .build();
-        rpcRequestPacket requestPacket = new rpcRequestPacket(RequestType.REQUEST.getCode(),  // requestType
-                CompressorType.COMPRESSTYPE_GZIP.getCode(),  // compressType
-                SerializerType.SERIALIZERTYPE_HESSION.getCode(),  // serializeType
-                MyRpcBootstrap.idGenerator.getId(),    // requestId
-                requestPayload);
+        rpcRequestPacket requestPacket = createrpcRequestPacket(method, args);
+        MyRpcBootstrap.REQUEST_THREAD_LOCAL.set(requestPacket);
+        //2.发现服务
+        //InetSocketAddress serviceAddress = MyRpcBootstrap.getInstance().roundRobinLoadBalancer.selectServiceAddress(anInterface.getName());
+        InetSocketAddress serviceAddress = MyRpcBootstrap.consistentHashLoadBalancer.selectServiceAddress(anInterface.getName());
+        log.info("通过负载均衡获取的服务提供者地址：{}",serviceAddress);
+        //3.从缓存中获取或创建channel
+        Channel channel = getOrCreateChannel(serviceAddress);
 
         //4.发送请求
         CompletableFuture<Object> completableFuture = new CompletableFuture<>();
@@ -64,9 +53,26 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 completableFuture.completeExceptionally(promise.cause());
             }
         });
+        //清理ThreadLocal
+        MyRpcBootstrap.REQUEST_THREAD_LOCAL.remove();
         //5.这里会阻塞，等待客户端调用completed方法返回结果
         return completableFuture.get(10, TimeUnit.SECONDS);
         //return null;
+    }
+    private rpcRequestPacket createrpcRequestPacket(Method method, Object[] args){
+        rpcRequestPayload requestPayload = rpcRequestPayload.builder()
+                .interfaceName(anInterface.getName())
+                .methodName(method.getName())
+                .parameterTypes(method.getParameterTypes())
+                .parameters(args)
+                .returnType(method.getReturnType())
+                .build();
+        rpcRequestPacket requestPacket = new rpcRequestPacket(
+                CompressorType.COMPRESSTYPE_GZIP.getCode(),  // compressType
+                SerializerType.SERIALIZERTYPE_HESSION.getCode(),  // serializeType
+                MyRpcBootstrap.idGenerator.getId(),    // requestId
+                requestPayload);
+        return requestPacket;
     }
     //获取或创建连接
     private Channel getOrCreateChannel(InetSocketAddress address){
@@ -83,7 +89,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
             //await和sync的区别是sync会阻塞当前线程，await不会
             //sync会直接抛出异常，await不会,需要自己检查是否成功
             ChannelFuture channelFuture = NettyBootstrapInitializer.getInstance().getBootstrap()
-                    .connect(address.getHostName(), Constant.PORT).await();
+                    .connect(address.getHostName(), address.getPort()).await();
             if(channelFuture.isSuccess()){
                 Channel newChannel = channelFuture.channel();
                 //添加监听器，当连接关闭时，从缓存中移除该连接

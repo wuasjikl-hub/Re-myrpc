@@ -1,5 +1,6 @@
 package com.myrpc.leafe.packet.client;
 
+import com.myrpc.leafe.enumeration.RequestType;
 import com.myrpc.leafe.packet.Packet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,9 +17,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class rpcRequestPacket extends Packet {
     private rpcRequestPayload payload;
-    public rpcRequestPacket(byte requestType, byte compressType,
+    public rpcRequestPacket(byte compressType,
                             byte serializeType, long requestId,rpcRequestPayload payload){
-        super(requestType, compressType, serializeType, requestId);
+        super(compressType, serializeType, requestId);
+        super.setRequestType(RequestType.REQUEST.getCode());
         this.payload = payload;
     }
 

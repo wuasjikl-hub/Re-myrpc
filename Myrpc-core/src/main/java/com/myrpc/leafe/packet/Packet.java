@@ -22,6 +22,11 @@ public abstract class Packet {
         this.serializeType = serializeType;
         this.requestId = requestId;
     }
+    public Packet(byte compressType, byte serializeType, long requestId) {
+        this.compressType = compressType;
+        this.serializeType = serializeType;
+        this.requestId = requestId;
+    }
 
     public Packet(byte request, Long requestid) {
         this.requestType = request;

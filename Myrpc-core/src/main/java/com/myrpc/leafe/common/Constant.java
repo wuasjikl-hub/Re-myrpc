@@ -13,9 +13,7 @@ public class Constant {
     //设置客户端最大重连次数
     public static final int CLIENT_MAX_RETRY = 3;
     //服务提供方默认端口
-    public static final int PORT = 8000;
-    //
-
-
-
+    public static final int PORT = 8003;
+    //虚拟节点个数
+    public static final int VIRTUAL_NODE_NUM = 128;
 }

@@ -37,7 +37,7 @@ public class ZooKeeperRegistry extends AbstractRegistry {
         //创建服务的本机节点(临时节点)
         //todo 这里的端口先假装是port:8088
         //端口由netty决定
-        String tempServiceNode=ServiceNode+"/"+ NetUtil.getIp()+":"+"8088";
+        String tempServiceNode=ServiceNode+"/"+ NetUtil.getIp()+":"+Constant.PORT;
         if(!ZookeeperUtils.exists(zooKeeper,tempServiceNode,null)){
             ZookeeperNode zookeeperNode2 = new ZookeeperNode(tempServiceNode, null, CreateMode.EPHEMERAL);
             ZookeeperUtils.createNode(zooKeeper,zookeeperNode2,null);

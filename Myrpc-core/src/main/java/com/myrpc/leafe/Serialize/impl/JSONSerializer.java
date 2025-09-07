@@ -6,11 +6,8 @@ import com.myrpc.leafe.Serialize.Serializer;
 import com.myrpc.leafe.enumeration.SerializerType;
 import com.myrpc.leafe.packet.Packet;
 import com.myrpc.leafe.packet.client.rpcRequestPacket;
-import com.myrpc.leafe.packet.client.rpcRequestPayload;
 import com.myrpc.leafe.packet.server.rpcResponsePacket;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Arrays;
 
 @Slf4j
 public class JSONSerializer implements Serializer {
@@ -51,26 +48,26 @@ public class JSONSerializer implements Serializer {
         }
         throw new IllegalArgumentException("Unsupported packet type: " + packet.getClass().getName());
     }
-    public static void main(String[] args) {
-        Serializer serializer = new JSONSerializer();
-
-        rpcRequestPayload requestPayload = new rpcRequestPayload();
-        requestPayload.setInterfaceName("xxxx");
-        requestPayload.setMethodName("yyy");
-        requestPayload.setParameters(new Object[]{"xxxx"});
-        requestPayload.setReturnType(String.class);
-        rpcRequestPacket requestPacket = new rpcRequestPacket((byte) 1,  // requestType
-                (byte) 1,  // compressType
-                (byte) 1,  // serializeType
-                12345L,     // requestId
-                requestPayload);
-        Object object = extractPayload(requestPacket);
-
-        byte[] serialize = serializer.serialize(object);
-        System.out.println(Arrays.toString(serialize));
-
-//        RequestPayload deserialize = serializer.deserialize(serialize, RequestPayload.class);
-//        System.out.println(deserialize);
-    }
+//    public static void main(String[] args) {
+//        Serializer serializer = new JSONSerializer();
+//
+//        rpcRequestPayload requestPayload = new rpcRequestPayload();
+//        requestPayload.setInterfaceName("xxxx");
+//        requestPayload.setMethodName("yyy");
+//        requestPayload.setParameters(new Object[]{"xxxx"});
+//        requestPayload.setReturnType(String.class);
+//        rpcRequestPacket requestPacket = new rpcRequestPacket((byte) 1,  // requestType
+//                (byte) 1,  // compressType
+//                (byte) 1,  // serializeType
+//                12345L,     // requestId
+//                requestPayload);
+//        Object object = extractPayload(requestPacket);
+//
+//        byte[] serialize = serializer.serialize(object);
+//        System.out.println(Arrays.toString(serialize));
+//
+////        RequestPayload deserialize = serializer.deserialize(serialize, RequestPayload.class);
+////        System.out.println(deserialize);
+//    }
 
 }

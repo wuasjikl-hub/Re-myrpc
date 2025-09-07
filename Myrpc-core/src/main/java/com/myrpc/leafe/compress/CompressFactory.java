@@ -1,0 +1,25 @@
+package com.myrpc.leafe.compress;
+
+import com.myrpc.leafe.compress.impl.GzipCompressor;
+import com.myrpc.leafe.enumeration.CompressorType;
+import com.myrpc.leafe.wrapper.ObjectWrapper;
+import com.myrpc.leafe.exceptions.CompressException;
+
+import java.util.concurrent.ConcurrentHashMap;
+
+public class CompressFactory {
+    private static final ConcurrentHashMap<Byte, ObjectWrapper<Compressor>> COMPRESS_CACHE=new ConcurrentHashMap<>(16);
+    static {
+        ObjectWrapper<Compressor> gzip = new ObjectWrapper<>(CompressorType.COMPRESSTYPE_GZIP.getCode(), CompressorType.COMPRESSTYPE_GZIP.name(), new GzipCompressor());
+        COMPRESS_CACHE.put((byte) 1, gzip);
+    }
+    public static ObjectWrapper<Compressor> getCompressor(byte code) {
+        if (!COMPRESS_CACHE.containsKey(code)) {
+            throw new CompressException("未找到对应的压缩器");
+        }
+        return COMPRESS_CACHE.get(code);
+    }
+    public static void addCompressor(ObjectWrapper<Compressor> compressorObjectWrapper){
+        COMPRESS_CACHE.put(compressorObjectWrapper.getCode(), compressorObjectWrapper);
+    }
+}

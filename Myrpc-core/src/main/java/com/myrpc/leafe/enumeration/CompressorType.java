@@ -1,0 +1,17 @@
+package com.myrpc.leafe.enumeration;
+
+public enum CompressorType {
+    COMPRESSTYPE_GZIP((byte) 0x01,"Gzip压缩");
+    private byte code;
+    private String type;
+    CompressorType(byte code, String type) {
+        this.code = code;
+        this.type = type;
+    }
+    public byte getCode() {
+        return code;
+    }
+    public String getType() {
+        return type;
+    }
+}

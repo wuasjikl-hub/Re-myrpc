@@ -1,11 +1,14 @@
 package com.myrpc.leafe.bootatrap;
 
+import com.myrpc.leafe.LoadBalancer.impl.ConsistentHashLoadBalancer;
+import com.myrpc.leafe.LoadBalancer.impl.RoundRobinLoadBalancer;
 import com.myrpc.leafe.bootatrap.Initializer.NettyServerBootstrapInitializer;
 import com.myrpc.leafe.common.Constant;
 import com.myrpc.leafe.config.ProtocolConfig;
 import com.myrpc.leafe.config.ReferenceConfig;
 import com.myrpc.leafe.config.RegistryConfig;
 import com.myrpc.leafe.config.ServiceConfig;
+import com.myrpc.leafe.packet.client.rpcRequestPacket;
 import com.myrpc.leafe.utils.IdGenerator;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -38,8 +41,11 @@ public class MyRpcBootstrap{
     public static final IdGenerator idGenerator = new IdGenerator(1, 1);
     // 响应的缓存
     public static final Map<Long, CompletableFuture<Object>> PENDING_REQUESTS = new ConcurrentHashMap<>();
+    public static final RoundRobinLoadBalancer roundRobinLoadBalancer = new RoundRobinLoadBalancer();
+    public static final ConsistentHashLoadBalancer consistentHashLoadBalancer = new ConsistentHashLoadBalancer();
 
-
+    //用ThreadLocal保存请求对象在当前线程中，方便后续使用
+    public static final ThreadLocal<rpcRequestPacket> REQUEST_THREAD_LOCAL = new ThreadLocal<>();
     //创建连接的缓存
     public final static Map<InetSocketAddress, Channel> CHANNEL_CACHE = new ConcurrentHashMap<>(16);
 
