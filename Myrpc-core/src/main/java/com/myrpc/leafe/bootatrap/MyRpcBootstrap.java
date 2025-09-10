@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 @Slf4j
 public class MyRpcBootstrap{
@@ -53,6 +54,8 @@ public class MyRpcBootstrap{
     //这里不能用类级别的泛型参数，因为这个类是静态的要用通配符
     public static final Map<String, ServiceConfig<?>> SERVER_MAP = new ConcurrentHashMap<>();
 
+    //响应时间的cache
+    public static volatile ConcurrentSkipListMap<Long, Channel> ANSWER_CHANNEL_CACHE = new ConcurrentSkipListMap<>();
     private MyRpcBootstrap() {
         System.out.println("MyRpcBootstrap init");
     }

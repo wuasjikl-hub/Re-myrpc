@@ -36,20 +36,26 @@ public class ConsistentHashLoadBalancer extends AbstractLoadBalancer {
             this.virtualNodes = virtualNodes;
             this.serviceAddresses = serviceAddresses;
             //将对应的虚拟节点添加到hash环中
-            for (InetSocketAddress serviceAddress : this.serviceAddresses) {
-                addNodeToHashCircle(serviceAddress);
-            }
+                addNodeToHashCircle();
         }
 
-        private void addNodeToHashCircle(InetSocketAddress serviceAddress) {
-            //为每个节点生成匹配的虚拟节点
-            for (int i = 0; i < virtualNodes; i++) {
-                Long hash=hash(serviceAddress.toString() + "-" + i);
-                hashCircle.put(hash, serviceAddress);
+        private void addNodeToHashCircle() {
+            lock.writeLock().lock();
+            try {
+                //为每个节点生成匹配的虚拟节点
+                for (InetSocketAddress serviceAddress : this.serviceAddresses) {
+                    for (int i = 0; i < virtualNodes; i++) {
+                        Long hash = hash(serviceAddress.toString() + "-" + i);
+                        hashCircle.put(hash, serviceAddress);
+                    }
+                    if (log.isDebugEnabled()) {
+                        log.debug("为{}添加虚拟节点", serviceAddress);
+                    }
+                }
+            } finally {
+                lock.writeLock().unlock();
             }
-            if(log.isDebugEnabled()){
-                log.debug("为{}添加虚拟节点", serviceAddress);
-            }
+
         }
         //移除节点
         private void removeNodeFromHashCircle(InetSocketAddress serviceAddress) {
@@ -71,13 +77,13 @@ public class ConsistentHashLoadBalancer extends AbstractLoadBalancer {
         private Long hash(String str){
             MessageDigest md5;
             md5 = MD5_DIGEST.get();
-            //通过MD5计算的是一个128位的字节数组
+            //通过MD5计算的是一个128位
             byte[] digest = md5.digest(str.getBytes(StandardCharsets.UTF_8));
-            //先整型提升后左移再或运算
+            //先整型提升并清除前24位后左移再或运算
             //如果没有整型提升,由于符号扩展（sign extension），负数的符号位会被复制到所有的高位
             //eg. byte b=-86的二进制表示为10101010
             //直接左移8位，int result = b << 8; // 期望: 1010101000000000 (43520)
-            //                     // 实际: 1111111111111111111111111010101000000000 (-22016)
+            //                     // 实际: 11111111111111111010101000000000 (-22016)
             long res = ((long)(digest[0] & 0xFF) << 56) |
                     ((long)(digest[1] & 0xFF) << 48) |
                     ((long)(digest[2] & 0xFF) << 40) |
@@ -122,9 +128,8 @@ public class ConsistentHashLoadBalancer extends AbstractLoadBalancer {
                     hashCircle.clear();
                     this.serviceAddresses = new CopyOnWriteArrayList<>(addresses);
                     //将对应的虚拟节点添加到hash环中
-                    for (InetSocketAddress serviceAddress : this.serviceAddresses) {
-                        addNodeToHashCircle(serviceAddress);
-                    }
+                    addNodeToHashCircle();
+
                     if (log.isDebugEnabled()) {
                         log.debug("Selector服务列表已更新，当前服务数量: {}", addresses.size());
                     }

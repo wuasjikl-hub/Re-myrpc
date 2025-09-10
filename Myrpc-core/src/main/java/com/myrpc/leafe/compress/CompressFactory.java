@@ -11,6 +11,7 @@ public class CompressFactory {
     private static final ConcurrentHashMap<Byte, ObjectWrapper<Compressor>> COMPRESS_CACHE=new ConcurrentHashMap<>(16);
     static {
         ObjectWrapper<Compressor> gzip = new ObjectWrapper<>(CompressorType.COMPRESSTYPE_GZIP.getCode(), CompressorType.COMPRESSTYPE_GZIP.name(), new GzipCompressor());
+
         COMPRESS_CACHE.put((byte) 1, gzip);
     }
     public static ObjectWrapper<Compressor> getCompressor(byte code) {

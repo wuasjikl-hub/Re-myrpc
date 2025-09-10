@@ -10,6 +10,7 @@ import com.myrpc.leafe.exceptions.PacketDecoderException;
 import com.myrpc.leafe.packet.Packet;
 import com.myrpc.leafe.packet.client.rpcRequestPacket;
 import com.myrpc.leafe.packet.client.rpcRequestPayload;
+import com.myrpc.leafe.packet.heartBeat.heartBeatPacket;
 import com.myrpc.leafe.packet.server.rpcResponsePacket;
 import io.netty.buffer.ByteBuf;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +49,8 @@ public class PacketCodec {
             Compressor compressor = getCompressor(packet.getCompressType());
             body = compressor.compress(body);
         }
-        int fullLength = MessageFormatConstant.HEADER_LENGTH + (body == null ? 0 : body.length);
+        //如果body为空则是心跳包多了一个timestamp的长度
+        int fullLength = MessageFormatConstant.HEADER_LENGTH + (body == null ? MessageFormatConstant.TIMESTAMP_FIELD_LENGTH : body.length);
 
         byteBuf.writeInt(MessageFormatConstant.MAGIC_NUMBER);//魔术
         byteBuf.writeByte(packet.getVersion());//版本号
@@ -57,8 +59,10 @@ public class PacketCodec {
         byteBuf.writeByte(packet.getSerializeType());//序列化类型
         byteBuf.writeByte(packet.getCompressType());//压缩类型
         byteBuf.writeByte(packet.getRequestType());//请求类型
+
         byteBuf.writeLong(packet.getRequestId());//请求id
         if(packet.getRequestType()==RequestType.HEARTBEAT.getCode()&&body== null){
+            byteBuf.writeLong(((heartBeatPacket)packet).getTimeStamp());
             return;
         }
         byteBuf.writeBytes(body);
@@ -100,27 +104,33 @@ public class PacketCodec {
         byte serializeType = byteBuf.readByte();
         byte compressType = byteBuf.readByte();
         byte requestType = byteBuf.readByte();
-
         //请求id
         long requestId = byteBuf.readLong();
         log.info("requestType信息:{}",requestType);
-        //查看数据包是否完整
-        if(byteBuf.readableBytes()<fullLength-headerLength){
-            throw new PacketDecoderException("Invalid data length:数据包不完整");
-        }
-        byte[] body = new byte[fullLength-headerLength];
-        byteBuf.readBytes(body);
-        Packet packet = extractPacket(body,requestType);
+        //接下来判断是什么类型的包
+        Packet packet = extractPacket(requestType);
+        //把固定值先设置了
         packet.setVersion(version);
         packet.setSerializeType(serializeType);
         packet.setCompressType(compressType);
         packet.setRequestType(requestType);
         packet.setRequestId(requestId);
         if(requestType==RequestType.HEARTBEAT.getCode()){
+            long timeStamp=byteBuf.readLong();
+            ((heartBeatPacket)packet).setTimeStamp(timeStamp);
             //心跳包没有负载直接返回
             log.debug("收到心跳包");
             return packet;
         }
+        //查看数据包是否完整
+        if(byteBuf.readableBytes()<fullLength-headerLength){
+            throw new PacketDecoderException("Invalid data length:数据包不完整");
+        }
+
+
+        byte[] body = new byte[fullLength-headerLength];
+        byteBuf.readBytes(body);
+
         //处理body部分(解压缩和反序列化)
         if(body!=null&&body.length>0){
             Compressor compressor = CompressFactory.getCompressor(compressType).getObject();
@@ -147,13 +157,14 @@ public class PacketCodec {
         return compressorCache.computeIfAbsent(compressType, type ->
                 CompressFactory.getCompressor(type).getObject());
     }
-    private Packet extractPacket(byte[] bytes,byte requestType){
+    private Packet extractPacket(byte requestType){
         Packet packet=null ;
         if(requestType== RequestType.REQUEST.getCode()){
             packet = new rpcRequestPacket();
-        }
-        if(requestType==RequestType.RESPONSE.getCode()){
+        } else if(requestType==RequestType.RESPONSE.getCode()){
             packet = new rpcResponsePacket();
+        }else if(requestType==RequestType.HEARTBEAT.getCode()){
+            packet = new heartBeatPacket();
         }
         return packet;
     }

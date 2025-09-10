@@ -10,6 +10,9 @@ public class MessageFormatConstant {
     public static final int LENGTH_FIELD_OFFSET = 7;
     //总长度字段长度
     public static final int LENGTH_FIELD_LENGTH = 4;
+
+    public static final int TIMESTAMP_FIELD_LENGTH = 8;
+
     //最大帧长度
     public  static int MAX_FRAME_LENGTH = 1024 * 1024;
 
