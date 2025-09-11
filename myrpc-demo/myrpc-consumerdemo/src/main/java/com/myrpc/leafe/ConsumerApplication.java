@@ -14,9 +14,17 @@ public class ConsumerApplication {
                 .application("myrpc-consumer")  //应用名
                 .registry(new RegistryConfig("zookeeper","127.0.0.1:2181"))//注册中心
                 .reference(referenceConfig);    //引用服务
-        GreetingService service = referenceConfig.get();//获取代理对象
+        //Object object = MyRpcBootstrap.getInstance().getReferenceConfig().get();//获取代理对象
+        GreetingService greetingService = referenceConfig.get();
         for (int i = 0; i < 4; i++) {
-            log.info("service.hello()"+service.hello("leafe"));
+            log.info("service.hello()"+greetingService.hello("leafe"));
+        }
+
+        try {//让主线程不要退出
+            Thread.sleep(1000000);
+        }catch (InterruptedException e)
+        {
+            e.printStackTrace();
         }
     }
 }

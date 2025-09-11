@@ -2,6 +2,7 @@ package com.myrpc.leafe.bootatrap.Initializer;
 
 import com.myrpc.leafe.Handlers.PacketCodecHandler;
 import com.myrpc.leafe.Handlers.Spliter;
+import com.myrpc.leafe.Handlers.server.HeartBeatServerHandler;
 import com.myrpc.leafe.Handlers.server.MethodCallHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
@@ -38,6 +39,7 @@ public class NettyServerBootstrapInitializer {
                                 .addLast(new LoggingHandler(LogLevel.DEBUG))
                                 .addLast(new Spliter())
                                 .addLast(PacketCodecHandler.INSTANCE)
+                                .addLast(HeartBeatServerHandler.INSTANCE)
                                 .addLast(MethodCallHandler.INSTANCE);
                     }
                 });

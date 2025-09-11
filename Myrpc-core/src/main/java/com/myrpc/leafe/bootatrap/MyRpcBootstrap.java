@@ -8,7 +8,9 @@ import com.myrpc.leafe.config.ProtocolConfig;
 import com.myrpc.leafe.config.ReferenceConfig;
 import com.myrpc.leafe.config.RegistryConfig;
 import com.myrpc.leafe.config.ServiceConfig;
+import com.myrpc.leafe.detector.HeartBeatDetector;
 import com.myrpc.leafe.packet.client.rpcRequestPacket;
+import com.myrpc.leafe.res.HeartBeatResult;
 import com.myrpc.leafe.utils.IdGenerator;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -36,12 +38,15 @@ public class MyRpcBootstrap{
     private String application;
     // 注册中心配置
     private RegistryConfig registryConfig;
+    //private ReferenceConfig<?> referenceConfig;
     // 协议
     private ProtocolConfig protocol;
 
     public static final IdGenerator idGenerator = new IdGenerator(1, 1);
     // 响应的缓存
     public static final Map<Long, CompletableFuture<Object>> PENDING_REQUESTS = new ConcurrentHashMap<>();
+    public static final Map<Long, CompletableFuture<HeartBeatResult>> HEARTBEAT_PENDING_REQUESTS = new ConcurrentHashMap<>();
+
     public static final RoundRobinLoadBalancer roundRobinLoadBalancer = new RoundRobinLoadBalancer();
     public static final ConsistentHashLoadBalancer consistentHashLoadBalancer = new ConsistentHashLoadBalancer();
 
@@ -55,7 +60,7 @@ public class MyRpcBootstrap{
     public static final Map<String, ServiceConfig<?>> SERVER_MAP = new ConcurrentHashMap<>();
 
     //响应时间的cache
-    public static volatile ConcurrentSkipListMap<Long, Channel> ANSWER_CHANNEL_CACHE = new ConcurrentSkipListMap<>();
+    public static volatile ConcurrentSkipListMap<Long, List<Channel>> ANSWER_CHANNEL_CACHE = new ConcurrentSkipListMap<>();
     private MyRpcBootstrap() {
         System.out.println("MyRpcBootstrap init");
     }
@@ -147,11 +152,15 @@ public class MyRpcBootstrap{
     }
 
     public <T>MyRpcBootstrap reference(ReferenceConfig<T> referenceConfig) {
+
+        //在此进行心跳检测
+        HeartBeatDetector.detectHeartBeat(referenceConfig.getInterface().getName());
         referenceConfig.setAnRegistry(this.registryConfig.getRegistry());
         return this;
     }
     public RegistryConfig getregistryConfig(){
         return registryConfig;
     }
+
 }
 

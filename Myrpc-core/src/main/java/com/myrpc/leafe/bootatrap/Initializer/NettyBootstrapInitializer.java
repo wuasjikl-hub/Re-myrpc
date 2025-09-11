@@ -2,6 +2,7 @@ package com.myrpc.leafe.bootatrap.Initializer;
 
 import com.myrpc.leafe.Handlers.PacketCodecHandler;
 import com.myrpc.leafe.Handlers.Spliter;
+import com.myrpc.leafe.Handlers.client.HeartBeatClientHandler;
 import com.myrpc.leafe.Handlers.client.MessageResponseHandler;
 import com.myrpc.leafe.bootatrap.MyRpcBootstrap;
 import com.myrpc.leafe.common.Constant;
@@ -42,6 +43,7 @@ public class NettyBootstrapInitializer {
                                 .addLast(new LoggingHandler(LogLevel.DEBUG))
                                 .addLast(new Spliter())//拆包器
                                 .addLast(PacketCodecHandler.INSTANCE)//编码器&解码器
+                                .addLast(HeartBeatClientHandler.INSTANCE)
                                 .addLast(MessageResponseHandler.INSTANCE);
 
                     }
