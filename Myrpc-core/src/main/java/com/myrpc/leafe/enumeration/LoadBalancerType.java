@@ -1,12 +1,13 @@
 package com.myrpc.leafe.enumeration;
 
-public enum SerializerType {
-    SERIALIZERTYPE_JSON((byte) 0x01,"JSON序列化"),
-    SERIALIZERTYPE_JDK((byte) 0x02,"JDK序列化"),
-    SERIALIZERTYPE_HESSION((byte) 0x03,"HESSION序列化");
+public enum LoadBalancerType {
+    LoadBalancerType_ConsistentHash((byte) 0x01,"一致性hash"),
+    LoadBalancerType_MinimumResponseTime((byte) 0x02,"最小响应时间"),
+    LoadBalancerType_RoundRobin((byte) 0x03,"轮询");
+
     private byte code;
     private String type;
-    SerializerType(byte code, String type) {
+    LoadBalancerType(byte code, String type) {
         this.code = code;
         this.type = type;
     }
@@ -17,7 +18,7 @@ public enum SerializerType {
         return type;
     }
     public static boolean isValidType(String type) {
-        for (SerializerType t : values()) {
+        for (LoadBalancerType t : values()) {
             if (t.getType().equals(type)) {
                 return true;
             }

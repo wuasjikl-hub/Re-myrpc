@@ -39,6 +39,8 @@ public class RoundRobinLoadBalancer extends AbstractLoadBalancer {
             lock.readLock().lock();
             try {
                 List<InetSocketAddress> currentAddresses = this.serviceAddresses;
+                currentAddresses.forEach(serviceAddress ->
+                        log.info("currentAddresses服务地址：{}", serviceAddress));
                 if (currentAddresses == null || currentAddresses.size() == 0) {
                     log.error("服务列表为空");
                     throw new LoadBalanceException("RoundRobinSelector异常：服务列表为空");
@@ -68,7 +70,6 @@ public class RoundRobinLoadBalancer extends AbstractLoadBalancer {
             }finally {
                 lock.writeLock().unlock();
             }
-
         }
     }
 }

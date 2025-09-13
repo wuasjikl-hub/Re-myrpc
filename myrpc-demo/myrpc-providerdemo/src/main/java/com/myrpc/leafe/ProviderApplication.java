@@ -2,8 +2,9 @@ package com.myrpc.leafe;
 
 import com.myrpc.leafe.bootatrap.MyRpcBootstrap;
 import com.myrpc.leafe.config.ProtocolConfig;
-import com.myrpc.leafe.config.RegistryConfig;
 import com.myrpc.leafe.config.ServiceConfig;
+import com.myrpc.leafe.enumeration.CompressorType;
+import com.myrpc.leafe.enumeration.SerializerType;
 import com.myrpc.leafe.impl.GreetingServiceimpl;
 import com.myrpc.leafe.impl.HelloServiceimpl;
 
@@ -20,9 +21,12 @@ public class ProviderApplication {
         //启动rpc服务
         MyRpcBootstrap.getInstance()
                 .application("myrpc-provider")//应用名
-                .registry(new RegistryConfig("zookeeper", "127.0.0.1:2181"))   //注册中心
+                .registry()   //注册中心
                 .protocol(new ProtocolConfig("jdk"))   //协议
-                .service(serviceConfig)    // 服务
+                .compress(CompressorType.COMPRESSTYPE_GZIP.getType())
+                .serialize(SerializerType.SERIALIZERTYPE_HESSION.getType())
+                //.service(serviceConfig)    // 发布服务
+                .scan("com.myrpc.leafe.impl")//服务实例一定要有无参构造函数否则无法创建实例
                 .start();
     }
 }

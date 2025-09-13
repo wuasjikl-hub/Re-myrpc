@@ -35,7 +35,7 @@ public class MethodCallHandler extends SimpleChannelInboundHandler<rpcRequestPac
         Class<?> returnType = payload.getReturnType();
         String interfaceName = payload.getInterfaceName();
         //寻找对应的方法
-        ServiceConfig<?> serviceConfig = MyRpcBootstrap.SERVER_MAP.get(interfaceName);
+        ServiceConfig<?> serviceConfig = MyRpcBootstrap.getInstance().getConfigration().getSERVER_MAP().get(interfaceName);
         //服务的实现类
         Object serviceimpl = serviceConfig.getServiceimpl();
         //通过反射调用对应的方法

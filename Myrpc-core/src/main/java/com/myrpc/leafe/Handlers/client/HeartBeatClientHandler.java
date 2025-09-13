@@ -19,7 +19,7 @@ public class HeartBeatClientHandler extends SimpleChannelInboundHandler<heartBea
         log.info("客户端收到心跳包");
         long responseTime = System.currentTimeMillis()-requestPacket.getTimeStamp();
         //将心跳包返回给客户端
-        CompletableFuture<HeartBeatResult> future = MyRpcBootstrap.HEARTBEAT_PENDING_REQUESTS.remove(requestPacket.getRequestId());
+        CompletableFuture<HeartBeatResult> future = MyRpcBootstrap.getInstance().getConfigration().getHEARTBEAT_PENDING_REQUESTS().remove(requestPacket.getRequestId());
         HeartBeatResult heartBeatResult = new HeartBeatResult();
         heartBeatResult.setResponseTime(responseTime);
         heartBeatResult.setSuccess(responseTime>0);

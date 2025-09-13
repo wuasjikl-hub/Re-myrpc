@@ -17,17 +17,25 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public abstract class AbstractLoadBalancer implements LoadBalancer{
 
-     //维护一个selector缓存
+     //维护一个selector缓存 不同服务的选择器不同每个选择器维护自己的服务列表
     private Map<String,Selector> SelectorCache=new ConcurrentHashMap<>(8);
 
     @Override
     public InetSocketAddress selectServiceAddress(String serviceName) {
-        log.info("Servicename：{}",serviceName);
-        log.info("SelectorCache：{}",SelectorCache);
         Selector selector=SelectorCache.computeIfAbsent(serviceName
                 ,this::createSelector
         );
-        return selector.selectServiceAddress();
+        if(selector==null){
+            log.error("Selector is null for service: {}", serviceName);
+
+            throw new LoadBalanceException("selector为空");
+        }
+        try {
+            return selector.selectServiceAddress();
+        } catch (Exception e) {
+            log.error("Error selecting service address for: {}", serviceName, e);
+            throw new LoadBalanceException("Error selecting service address for: " + serviceName, e);
+        }
     }
     private Selector createSelector(String serviceName) {
         // 获取服务地址列表
@@ -36,7 +44,8 @@ public abstract class AbstractLoadBalancer implements LoadBalancer{
         if (addresses == null || addresses.isEmpty()) {
             throw new LoadBalanceException("找不到服务" + serviceName);
         }
-        Selector selector = getSelector(addresses);
+        Selector selector =null;
+        selector = getSelector(addresses);
         return selector;
     }
     //当服务列表更新时，后续用watcher机制调用此方法更新selector内维护的服务列表
@@ -51,7 +60,8 @@ public abstract class AbstractLoadBalancer implements LoadBalancer{
     }
     private List<InetSocketAddress> discoverServices(String serviceName) {
         return MyRpcBootstrap.getInstance()
-                .getregistryConfig()
+                .getConfigration()
+                .getRegistryConfig()
                 .getRegistry()
                 .discovery(serviceName);
     }

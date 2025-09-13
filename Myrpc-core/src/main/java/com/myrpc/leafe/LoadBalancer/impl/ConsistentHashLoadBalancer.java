@@ -101,7 +101,7 @@ public class ConsistentHashLoadBalancer extends AbstractLoadBalancer {
             lock.readLock().lock();
             try {
                 //hash环已经构建完成,接下来我们通过请求id获取hash值
-                rpcRequestPacket rpcRequestPacket = MyRpcBootstrap.REQUEST_THREAD_LOCAL.get();
+                rpcRequestPacket rpcRequestPacket = MyRpcBootstrap.getInstance().getConfigration().getREQUEST_THREAD_LOCAL().get();
                 Long hash = hash(Long.toString(rpcRequestPacket.getRequestId()));
                 if (!hashCircle.containsKey(hash)) {
                     //找到距离计算出来的hash的最近服务节点

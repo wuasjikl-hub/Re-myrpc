@@ -1,28 +1,26 @@
 package com.myrpc.leafe.bootatrap;
 
-import com.myrpc.leafe.LoadBalancer.impl.ConsistentHashLoadBalancer;
-import com.myrpc.leafe.LoadBalancer.impl.RoundRobinLoadBalancer;
 import com.myrpc.leafe.bootatrap.Initializer.NettyServerBootstrapInitializer;
-import com.myrpc.leafe.common.Constant;
+import com.myrpc.leafe.bootatrap.annotaion.MyrpcScan;
 import com.myrpc.leafe.config.ProtocolConfig;
 import com.myrpc.leafe.config.ReferenceConfig;
 import com.myrpc.leafe.config.RegistryConfig;
 import com.myrpc.leafe.config.ServiceConfig;
+import com.myrpc.leafe.configration.Configration;
 import com.myrpc.leafe.detector.HeartBeatDetector;
-import com.myrpc.leafe.packet.client.rpcRequestPacket;
-import com.myrpc.leafe.res.HeartBeatResult;
-import com.myrpc.leafe.utils.IdGenerator;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.InetSocketAddress;
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class MyRpcBootstrap{
@@ -35,33 +33,10 @@ public class MyRpcBootstrap{
     /**
      * 应用名
      */
-    private String application;
-    // 注册中心配置
-    private RegistryConfig registryConfig;
-    //private ReferenceConfig<?> referenceConfig;
-    // 协议
-    private ProtocolConfig protocol;
+    private final Configration configration;
 
-    public static final IdGenerator idGenerator = new IdGenerator(1, 1);
-    // 响应的缓存
-    public static final Map<Long, CompletableFuture<Object>> PENDING_REQUESTS = new ConcurrentHashMap<>();
-    public static final Map<Long, CompletableFuture<HeartBeatResult>> HEARTBEAT_PENDING_REQUESTS = new ConcurrentHashMap<>();
-
-    public static final RoundRobinLoadBalancer roundRobinLoadBalancer = new RoundRobinLoadBalancer();
-    public static final ConsistentHashLoadBalancer consistentHashLoadBalancer = new ConsistentHashLoadBalancer();
-
-    //用ThreadLocal保存请求对象在当前线程中，方便后续使用
-    public static final ThreadLocal<rpcRequestPacket> REQUEST_THREAD_LOCAL = new ThreadLocal<>();
-    //创建连接的缓存
-    public final static Map<InetSocketAddress, Channel> CHANNEL_CACHE = new ConcurrentHashMap<>(16);
-
-    // 维护已经发布且暴露的服务列表 key-> interface的全限定名  value -> ServiceConfig
-    //这里不能用类级别的泛型参数，因为这个类是静态的要用通配符
-    public static final Map<String, ServiceConfig<?>> SERVER_MAP = new ConcurrentHashMap<>();
-
-    //响应时间的cache
-    public static volatile ConcurrentSkipListMap<Long, List<Channel>> ANSWER_CHANNEL_CACHE = new ConcurrentSkipListMap<>();
     private MyRpcBootstrap() {
+        this.configration = new Configration();
         System.out.println("MyRpcBootstrap init");
     }
     /**
@@ -71,7 +46,7 @@ public class MyRpcBootstrap{
      * @return
      */
     public MyRpcBootstrap application(String application){
-        this.application = application;
+        this.configration.setApplication(application);
         return this;
     }
     public static MyRpcBootstrap getInstance() {
@@ -82,9 +57,18 @@ public class MyRpcBootstrap{
      * @return
      */
     public MyRpcBootstrap registry(RegistryConfig registryConfig) {
-        this.registryConfig = registryConfig;
+        this.configration.setRegistryConfig(registryConfig);
         if(log.isDebugEnabled()){
             log.debug("当前注册中心为:{}",registryConfig.getRegistryType());
+        }
+        //localregistry=registryConfig.getRegistry();
+        return this;
+    }
+    public MyRpcBootstrap registry() {
+//        RegistryConfig zookeeper = new RegistryConfig(configration.getRegistryType(), configration.getRegistryAddress());
+//        this.configration.setRegistryConfig(zookeeper);
+        if(log.isDebugEnabled()){
+            log.debug("当前注册中心为:{}",this.configration.getRegistryConfig().getRegistryType());
         }
         //localregistry=registryConfig.getRegistry();
         return this;
@@ -94,7 +78,7 @@ public class MyRpcBootstrap{
      * @return
      */
     public MyRpcBootstrap protocol(ProtocolConfig protocol) {
-        this.protocol = protocol;
+        this.configration.setProtocol(protocol);
         if(log.isDebugEnabled()){
             log.debug("当前协议:{}",protocol.toString());
         }
@@ -106,34 +90,39 @@ public class MyRpcBootstrap{
      */
     public <T>MyRpcBootstrap service(ServiceConfig<T> serviceConfig) {
         //todo 等会放到共同的配置类中
-        this.registryConfig.getRegistry().register(serviceConfig);
+        this.configration.getRegistryConfig().getRegistry().register(serviceConfig);
         //localregistry.register(serviceConfig);
         if(log.isDebugEnabled()){
             log.debug("服务:{}已经被注册",serviceConfig.getInterface().getName());
         }
         //当客户端通过接口名和参数列表发起调用时，服务端要调用对应的服务实现类
         //我们还要维护一个服务名和服务的实现类之间的映射关系
-        SERVER_MAP.put(serviceConfig.getInterface().getName(),serviceConfig);
+        this.configration.getSERVER_MAP().put(serviceConfig.getInterface().getName(),serviceConfig);
         return this;
     }
     /**
      * 注册多个服务
      * @return
      */
-    public <T>MyRpcBootstrap service(List<ServiceConfig<T>> serviceConfigList){
-        serviceConfigList.forEach(serviceConfig -> {
-            this.registryConfig.getRegistry().register(serviceConfig);
-            if(log.isDebugEnabled()){
-                log.debug("服务:{}已经被注册",serviceConfig.getInterface().getName());
+    public MyRpcBootstrap service(List<ServiceConfig<?>> serviceConfigList){
+        for (ServiceConfig<?> serviceConfig : serviceConfigList) {
+            try {
+                this.configration.getRegistryConfig().getRegistry().register(serviceConfig);
+                if (log.isDebugEnabled()) {
+                    log.debug("服务: {} 已被注册", serviceConfig.getInterface().getName());
+                }
+                this.configration.getSERVER_MAP().put(serviceConfig.getInterface().getName(), serviceConfig);
+            } catch (Exception e) {
+                log.error("注册服务 {} 失败: {}",
+                        serviceConfig.getInterface().getName(), e.getMessage());
             }
-            SERVER_MAP.put(serviceConfig.getInterface().getName(),serviceConfig);
-        });
+        }
         return this;
     }
 
     public void start() {
         ServerBootstrap serverBootstrap = NettyServerBootstrapInitializer.getInstance().getBootstrap();
-        ChannelFuture channelFuture = bind(serverBootstrap, Constant.PORT);//绑定端口
+        ChannelFuture channelFuture = bind(serverBootstrap, this.configration.getPort());//绑定端口
         // 等待直到服务器通道关闭
         try {
             channelFuture.channel().closeFuture().sync();
@@ -155,12 +144,115 @@ public class MyRpcBootstrap{
 
         //在此进行心跳检测
         HeartBeatDetector.detectHeartBeat(referenceConfig.getInterface().getName());
-        referenceConfig.setAnRegistry(this.registryConfig.getRegistry());
+        referenceConfig.setAnRegistry(this.configration.getRegistryConfig().getRegistry());
         return this;
     }
-    public RegistryConfig getregistryConfig(){
-        return registryConfig;
+    public MyRpcBootstrap scan(String packgeName) {
+        //扫描包 通过name获得所有的类的全限定名
+        List<String> classNames=getAllServiceName(packgeName);
+        //2.通过反射获取类的接口
+        List<? extends Class<?>> classList = classNames.stream().map(className -> {
+                    try {
+                        return Class.forName(className);
+                    } catch (ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }//过滤掉没有注解的类
+                }).filter(Objects::nonNull)
+                  .filter(clazz -> clazz.getAnnotation(MyrpcScan.class) != null)
+                  .filter(clazz -> !clazz.isInterface() && !Modifier.isAbstract(clazz.getModifiers()))
+                  .collect(Collectors.toList());
+        for (Class<?> clazz : classList) {
+            try {
+                Class<?>[] interfaces = clazz.getInterfaces();
+                Object object = clazz.getDeclaredConstructor().newInstance();
+
+                List<ServiceConfig<?>> ServiceConfiglist = new ArrayList<>();
+                for (Class<?> anInterface : interfaces) {
+                    ServiceConfig<Object> ServiceConfig = new ServiceConfig<>();
+                    @SuppressWarnings("unchecked") //强制转换
+                    Class<Object>interfaceType =(Class<Object>)anInterface;
+                    ServiceConfig.setInterface(interfaceType);
+                    ServiceConfig.setRef(object);
+                    ServiceConfiglist.add(ServiceConfig);
+                }
+                service(ServiceConfiglist);
+            } catch (InstantiationException | IllegalAccessException |
+                     InvocationTargetException | NoSuchMethodException e) {
+                log.error("创建类 {} 的实例失败: {}", clazz.getName(), e.getMessage());
+            }
+        }
+        return this;
     }
 
+    private List<String> getAllServiceName(String packgeName) {
+        //1.获取基础路径
+        String basePath=packgeName.replaceAll("\\.","/");
+        //System.out.println(basePath);
+        //2.获取url
+        URL url = ClassLoader.getSystemClassLoader().getResource(basePath);
+        if(url==null){
+            log.error("包名不存在");
+            return Collections.EMPTY_LIST;
+        }
+        String absolutePath = url.getPath();
+        //3.递归获取所有类名
+        List<String> classNames = new ArrayList<>();
+        recursionFile(absolutePath,packgeName,classNames);
+
+        return classNames;
+    }
+
+    private void recursionFile(String absolutePath,String packegeName,List<String> classNames) {
+        File file = new File(absolutePath);
+        if(file.isDirectory()){
+            File[] files = file.listFiles(pathname ->
+                    pathname.isDirectory() || pathname.getName().endsWith(".class"));
+            if(files==null){
+                return;
+            }
+            for (File f : files) {
+                if(f.isDirectory()){
+                    String subPackgename=packegeName+"."+f.getName();
+                    recursionFile(f.getAbsolutePath(),subPackgename,classNames);
+                }else{//.class文件
+                    if(!f.getName().contains("$")) {//过滤掉内部类
+                        String className = getClassNameByFileName(packegeName, f.getName());
+                        classNames.add(className);
+                    }
+                }
+            }
+        }else{//如果是单文件
+            if(file.getName().endsWith(".class")&&!file.getName().contains("$")){
+                String className = getClassNameByFileName(packegeName, file.getName());
+                classNames.add(className);
+            }
+        }
+
+    }
+    private String getClassNameByFileName(String packgeName,String fileName){
+        return packgeName+"."+fileName.replace(".class", "");
+    }
+    public Configration getConfigration() {
+        return configration;
+    }
+    /**
+     * 配置序列化的方式
+     * @param serializeType 序列化的方式
+     */
+    public MyRpcBootstrap serialize(String serializeType) {
+        this.configration.setSerializeType(serializeType);
+        if (log.isDebugEnabled()) {
+            log.debug("我们配置了使用的序列化的方式为【{}】.", serializeType);
+        }
+        return this;
+    }
+
+    public MyRpcBootstrap compress(String compressType) {
+        this.configration.setCompressType(compressType);
+        if (log.isDebugEnabled()) {
+            log.debug("我们配置了使用的压缩算法为【{}】.", compressType);
+        }
+        return this;
+    }
 }
 

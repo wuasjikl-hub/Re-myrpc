@@ -2,7 +2,7 @@ package com.myrpc.leafe.config;
 
 public class ServiceConfig<T> {
     private Class<T> serviceInterface;
-    private T serviceimpl;
+    private T ref;
 
     public Class<T> getInterface() {
         return serviceInterface;
@@ -13,10 +13,10 @@ public class ServiceConfig<T> {
     }
 
     public T getServiceimpl() {
-        return serviceimpl;
+        return ref;
     }
 
     public void setRef(T serviceimpl) {
-        this.serviceimpl = serviceimpl;
+        this.ref = serviceimpl;
     }
 }

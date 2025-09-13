@@ -14,4 +14,12 @@ public enum CompressorType {
     public String getType() {
         return type;
     }
+    public static boolean isValidType(String type) {
+        for (CompressorType t : values()) {
+            if (t.getType().equals(type)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

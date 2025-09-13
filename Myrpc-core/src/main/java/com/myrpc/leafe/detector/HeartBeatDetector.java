@@ -1,9 +1,9 @@
 package com.myrpc.leafe.detector;
 
+import com.myrpc.leafe.Serialize.SerializerFactory;
 import com.myrpc.leafe.bootatrap.Initializer.NettyBootstrapInitializer;
 import com.myrpc.leafe.bootatrap.MyRpcBootstrap;
-import com.myrpc.leafe.enumeration.CompressorType;
-import com.myrpc.leafe.enumeration.SerializerType;
+import com.myrpc.leafe.compress.CompressFactory;
 import com.myrpc.leafe.packet.heartBeat.heartBeatPacket;
 import com.myrpc.leafe.res.HeartBeatResult;
 import io.netty.channel.Channel;
@@ -12,7 +12,9 @@ import io.netty.channel.ChannelFutureListener;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeMap;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -101,10 +103,10 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
                     return thread;
                 }
             });
-            // 调度任务，初始延迟1秒，之后每5秒执行一次
+            // 调度任务，，之后每5秒执行一次
             scheduledTask = scheduler.scheduleAtFixedRate(
                     new HeartBeatRunnable(serviceName),
-                    1000,
+                    0,
                     5000,
                     TimeUnit.MILLISECONDS
             );
@@ -134,12 +136,12 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
             }
         }
         // 清理待处理请求
-        MyRpcBootstrap.HEARTBEAT_PENDING_REQUESTS.forEach((id, future) -> {
+        MyRpcBootstrap.getInstance().getConfigration().getHEARTBEAT_PENDING_REQUESTS().forEach((id, future) -> {
             if (!future.isDone()) {
                 future.completeExceptionally(new RuntimeException("心跳检测器已停止"));
             }
         });
-        MyRpcBootstrap.HEARTBEAT_PENDING_REQUESTS.clear();
+        MyRpcBootstrap.getInstance().getConfigration().getHEARTBEAT_PENDING_REQUESTS().clear();
         // 优雅关闭线程池
         HEARTBEAT_EXECUTOR.shutdown();
         try {
@@ -166,7 +168,7 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
                     log.debug("开始执行心跳检测");
                 }
                 //先获取服务提供者地址
-                List<InetSocketAddress> addresses = MyRpcBootstrap.getInstance().getregistryConfig()
+                List<InetSocketAddress> addresses = MyRpcBootstrap.getInstance().getConfigration().getRegistryConfig()
                         .getRegistry().discovery(serviceName);
                 if(addresses == null || addresses.isEmpty()){
                     log.warn("没有可用的服务提供者地址");
@@ -206,12 +208,12 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
                     }
                 }
                 //原子更新channelcache中的值
-                synchronized (MyRpcBootstrap.ANSWER_CHANNEL_CACHE) {
-                    MyRpcBootstrap.ANSWER_CHANNEL_CACHE.clear();
-                    MyRpcBootstrap.ANSWER_CHANNEL_CACHE.putAll(newTreeMap);
+                synchronized (MyRpcBootstrap.getInstance().getConfigration().getANSWER_CHANNEL_CACHE()) {
+                    MyRpcBootstrap.getInstance().getConfigration().getANSWER_CHANNEL_CACHE().clear();
+                    MyRpcBootstrap.getInstance().getConfigration().getANSWER_CHANNEL_CACHE().putAll(newTreeMap);
                 }
                 //打印一下MyRpcBootstrap.ANSWER_CHANNEL_CACHE
-                MyRpcBootstrap.ANSWER_CHANNEL_CACHE.forEach((time, channels) -> {
+                MyRpcBootstrap.getInstance().getConfigration().getANSWER_CHANNEL_CACHE().forEach((time, channels) -> {
                     for (Channel channel : channels) {
                         log.info("提供者{}的响应时间为:{}ms",  channel.remoteAddress(), time);
                     }
@@ -226,12 +228,12 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
         private HeartBeatResult checkAddressHeartbeat(InetSocketAddress address) {
             HeartBeatResult heartBeatResult = new HeartBeatResult(address,false,-1);
             //获取或创建channel
-            Channel channel = MyRpcBootstrap.CHANNEL_CACHE.get(address);
+            Channel channel = MyRpcBootstrap.getInstance().getConfigration().getCHANNEL_CACHE().get(address);
             try{
                 if (channel == null || !channel.isActive()) {
                     if (channel != null) {
                         // 移除无效通道
-                        MyRpcBootstrap.CHANNEL_CACHE.remove(address);
+                        MyRpcBootstrap.getInstance().getConfigration().getCHANNEL_CACHE().remove(address);
                         channel.close();
                     }
                     ChannelFuture channelFuture = NettyBootstrapInitializer.getInstance().getBootstrap()
@@ -243,7 +245,7 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
                         return heartBeatResult;
                     }
                     channel = channelFuture.channel();
-                    MyRpcBootstrap.CHANNEL_CACHE.put(address, channel);
+                    MyRpcBootstrap.getInstance().getConfigration().getCHANNEL_CACHE().put(address, channel);
                 }
                 //发送心跳包
                 heartBeatResult.setResponseTime(sendHeartBeat(channel));
@@ -254,8 +256,8 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
                 if(channel != null){
                     channel.close();
                 }
-                if(MyRpcBootstrap.CHANNEL_CACHE.containsKey(address)){
-                    MyRpcBootstrap.CHANNEL_CACHE.remove(address);
+                if(MyRpcBootstrap.getInstance().getConfigration().getCHANNEL_CACHE().containsKey(address)){
+                    MyRpcBootstrap.getInstance().getConfigration().getCHANNEL_CACHE().remove(address);
                 }
             }
             return heartBeatResult;
@@ -272,9 +274,9 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
                 try{
                     long startTime = System.currentTimeMillis();
                     //发送心跳报文
-                    heartBeatPacket heartBeatPacket = new heartBeatPacket( CompressorType.COMPRESSTYPE_GZIP.getCode(),
-                            SerializerType.SERIALIZERTYPE_HESSION.getCode(),
-                            MyRpcBootstrap.idGenerator.getId(),
+                    heartBeatPacket heartBeatPacket = new heartBeatPacket( CompressFactory.getCompressorByName(MyRpcBootstrap.getInstance().getConfigration().getCompressType()).getCode(),
+                            SerializerFactory.getSerializerByName(MyRpcBootstrap.getInstance().getConfigration().getSerializeType()).getCode(),
+                            MyRpcBootstrap.getInstance().getConfigration().idGenerator.getId(),
                             startTime);
 
                     future= new CompletableFuture<>();
@@ -282,10 +284,10 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
 
                     final long currentRequestId = newrequestId;
                     final CompletableFuture<HeartBeatResult> currentFuture = future;
-                    MyRpcBootstrap.HEARTBEAT_PENDING_REQUESTS.put(newrequestId,future);
+                    MyRpcBootstrap.getInstance().getConfigration().getHEARTBEAT_PENDING_REQUESTS().put(newrequestId,future);
                     channel.writeAndFlush(heartBeatPacket).addListener((ChannelFutureListener) promise -> {
                         if (!promise.isSuccess()) {
-                            CompletableFuture<HeartBeatResult> removeFuture = MyRpcBootstrap.HEARTBEAT_PENDING_REQUESTS.remove(currentRequestId);
+                            CompletableFuture<HeartBeatResult> removeFuture = MyRpcBootstrap.getInstance().getConfigration().getHEARTBEAT_PENDING_REQUESTS().remove(currentRequestId);
                             currentFuture.completeExceptionally(promise.cause());
                         }
                     });
@@ -299,13 +301,19 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
                     break;
                 } catch (Exception e) {
                     //一旦失败就直接清除缓存中的Future,只要成功的
-                    if(MyRpcBootstrap.HEARTBEAT_PENDING_REQUESTS.containsKey(newrequestId)) {
-                        MyRpcBootstrap.HEARTBEAT_PENDING_REQUESTS.remove(newrequestId);
+                    if(MyRpcBootstrap.getInstance().getConfigration().getHEARTBEAT_PENDING_REQUESTS().containsKey(newrequestId)) {
+                        MyRpcBootstrap.getInstance().getConfigration().getHEARTBEAT_PENDING_REQUESTS().remove(newrequestId);
                     }
                     retryCount--;
                     log.warn("发送心跳包失败，剩余重试次数: {}", retryCount);
+                    log.warn("与 {}的主机连接发生问题", channel.remoteAddress());
+
                     if (retryCount <= 0) {
                         log.warn("重试次数用完，无法发送心跳包");
+                        //可能是服务端挂了，或者网络问题把服务端给的连接断掉
+                        log.warn("与 {}主机断开连接", channel.remoteAddress());
+                        channel.close();
+                        MyRpcBootstrap.getInstance().getConfigration().getCHANNEL_CACHE().remove(channel.remoteAddress());
                         break;
                     }
                     //使用指数退避

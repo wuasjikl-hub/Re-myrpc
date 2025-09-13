@@ -9,16 +9,25 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class CompressFactory {
     private static final ConcurrentHashMap<Byte, ObjectWrapper<Compressor>> COMPRESS_CACHE=new ConcurrentHashMap<>(16);
-    static {
-        ObjectWrapper<Compressor> gzip = new ObjectWrapper<>(CompressorType.COMPRESSTYPE_GZIP.getCode(), CompressorType.COMPRESSTYPE_GZIP.name(), new GzipCompressor());
+    private static final ConcurrentHashMap<String, ObjectWrapper<Compressor>> COMPRESS_CACHE_ByName=new ConcurrentHashMap<>(16);
 
-        COMPRESS_CACHE.put((byte) 1, gzip);
+    static {
+        ObjectWrapper<Compressor> gzip = new ObjectWrapper<>(CompressorType.COMPRESSTYPE_GZIP.getCode(), CompressorType.COMPRESSTYPE_GZIP.getType(), new GzipCompressor());
+
+        COMPRESS_CACHE.put(gzip.getCode(), gzip);
+        COMPRESS_CACHE_ByName.put(gzip.getName(), gzip);
     }
     public static ObjectWrapper<Compressor> getCompressor(byte code) {
         if (!COMPRESS_CACHE.containsKey(code)) {
             throw new CompressException("未找到对应的压缩器");
         }
         return COMPRESS_CACHE.get(code);
+    }
+    public static ObjectWrapper<Compressor> getCompressorByName(String name) {
+        if (!COMPRESS_CACHE_ByName.containsKey(name)) {
+            throw new CompressException("未找到对应的压缩器");
+        }
+        return COMPRESS_CACHE_ByName.get(name);
     }
     public static void addCompressor(ObjectWrapper<Compressor> compressorObjectWrapper){
         COMPRESS_CACHE.put(compressorObjectWrapper.getCode(), compressorObjectWrapper);

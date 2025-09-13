@@ -1,12 +1,14 @@
 package com.myrpc.leafe.Registry.impl;
 
 import com.myrpc.leafe.Registry.AbstractRegistry;
+import com.myrpc.leafe.bootatrap.MyRpcBootstrap;
 import com.myrpc.leafe.config.ServiceConfig;
 import com.myrpc.leafe.common.Constant;
 import com.myrpc.leafe.exceptions.NotFoundedEnableNodeException;
 import com.myrpc.leafe.utils.net.NetUtil;
 import com.myrpc.leafe.utils.zookeeper.ZookeeperNode;
 import com.myrpc.leafe.utils.zookeeper.ZookeeperUtils;
+import com.myrpc.leafe.watcher.ServiceUpAndDownWatcher;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooKeeper;
@@ -37,7 +39,7 @@ public class ZooKeeperRegistry extends AbstractRegistry {
         //创建服务的本机节点(临时节点)
         //todo 这里的端口先假装是port:8088
         //端口由netty决定
-        String tempServiceNode=ServiceNode+"/"+ NetUtil.getIp()+":"+Constant.PORT;
+        String tempServiceNode=ServiceNode+"/"+ NetUtil.getIp()+":"+ MyRpcBootstrap.getInstance().getConfigration().getPort();
         if(!ZookeeperUtils.exists(zooKeeper,tempServiceNode,null)){
             ZookeeperNode zookeeperNode2 = new ZookeeperNode(tempServiceNode, null, CreateMode.EPHEMERAL);
             ZookeeperUtils.createNode(zooKeeper,zookeeperNode2,null);
@@ -56,7 +58,7 @@ public class ZooKeeperRegistry extends AbstractRegistry {
         log.info("服务发现：{}",serviceName);
         String ennableServiceNode=Constant.ZK_PROVIDERS_PATH+"/"+serviceName;
         //获取可用服务节点
-        List<String> childeren = ZookeeperUtils.getChilderen(zooKeeper, ennableServiceNode, null);
+        List<String> childeren = ZookeeperUtils.getChilderen(zooKeeper, ennableServiceNode, new ServiceUpAndDownWatcher());
         if(childeren.size()==0){
             log.warn("没有可用的服务节点");
             throw new NotFoundedEnableNodeException("没有可用的服务节点");

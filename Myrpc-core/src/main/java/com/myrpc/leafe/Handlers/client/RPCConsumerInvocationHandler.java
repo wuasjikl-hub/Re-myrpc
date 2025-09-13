@@ -1,10 +1,10 @@
 package com.myrpc.leafe.Handlers.client;
 
 import com.myrpc.leafe.Registry.Registry;
+import com.myrpc.leafe.Serialize.SerializerFactory;
 import com.myrpc.leafe.bootatrap.Initializer.NettyBootstrapInitializer;
 import com.myrpc.leafe.bootatrap.MyRpcBootstrap;
-import com.myrpc.leafe.enumeration.CompressorType;
-import com.myrpc.leafe.enumeration.SerializerType;
+import com.myrpc.leafe.compress.CompressFactory;
 import com.myrpc.leafe.exceptions.LinktoProviderexception;
 import com.myrpc.leafe.packet.client.rpcRequestPacket;
 import com.myrpc.leafe.packet.client.rpcRequestPayload;
@@ -35,10 +35,12 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
         //1.创建rpc请求
         //先封装负载
         rpcRequestPacket requestPacket = createrpcRequestPacket(method, args);
-        MyRpcBootstrap.REQUEST_THREAD_LOCAL.set(requestPacket);
+        MyRpcBootstrap.getInstance().getConfigration().getREQUEST_THREAD_LOCAL().set(requestPacket);
         //2.发现服务
-        //InetSocketAddress serviceAddress = MyRpcBootstrap.getInstance().roundRobinLoadBalancer.selectServiceAddress(anInterface.getName());
-        InetSocketAddress serviceAddress = MyRpcBootstrap.consistentHashLoadBalancer.selectServiceAddress(anInterface.getName());
+        InetSocketAddress serviceAddress = MyRpcBootstrap.getInstance().getConfigration().getLoadBalancer(anInterface.getName()).selectServiceAddress(anInterface.getName());
+        //InetSocketAddress serviceAddress = MyRpcBootstrap.minimumResponseTimeLoadBalancer.selectServiceAddress(anInterface.getName());
+        //InetSocketAddress serviceAddress = MyRpcBootstrap.consistentHashLoadBalancer.selectServiceAddress(anInterface.getName());
+
         log.info("通过负载均衡获取的服务提供者地址：{}",serviceAddress);
         //3.从缓存中获取或创建channel
         Channel channel = getOrCreateChannel(serviceAddress);
@@ -46,7 +48,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
         //4.发送请求
         CompletableFuture<Object> completableFuture = new CompletableFuture<>();
         //添加监听器，当请求发送成功时，将结果保存到CompletableFuture中
-        MyRpcBootstrap.PENDING_REQUESTS.put(requestPacket.getRequestId(),completableFuture);
+        MyRpcBootstrap.getInstance().getConfigration().getPNDING_REQUESTS().put(requestPacket.getRequestId(),completableFuture);
         ChannelFuture channelFuture = channel.writeAndFlush(requestPacket).addListener((ChannelFutureListener) promise->{
             if(!promise.isSuccess()){
                 log.error("请求服务失败：{}",promise.cause());
@@ -54,7 +56,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
             }
         });
         //清理ThreadLocal
-        MyRpcBootstrap.REQUEST_THREAD_LOCAL.remove();
+        MyRpcBootstrap.getInstance().getConfigration().getREQUEST_THREAD_LOCAL().remove();
         //5.这里会阻塞，等待客户端调用completed方法返回结果
         return completableFuture.get(10, TimeUnit.SECONDS);
         //return null;
@@ -68,20 +70,20 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 .returnType(method.getReturnType())
                 .build();
         rpcRequestPacket requestPacket = new rpcRequestPacket(
-                CompressorType.COMPRESSTYPE_GZIP.getCode(),  // compressType
-                SerializerType.SERIALIZERTYPE_HESSION.getCode(),  // serializeType
-                MyRpcBootstrap.idGenerator.getId(),    // requestId
+                CompressFactory.getCompressorByName(MyRpcBootstrap.getInstance().getConfigration().getCompressType()).getCode(),  // compressType
+                SerializerFactory.getSerializerByName(MyRpcBootstrap.getInstance().getConfigration().getSerializeType()).getCode(),  // serializeType
+                MyRpcBootstrap.getInstance().getConfigration().idGenerator.getId(),    // requestId
                 requestPayload);
         return requestPacket;
     }
     //获取或创建连接
     private Channel getOrCreateChannel(InetSocketAddress address){
-        Channel channel = MyRpcBootstrap.CHANNEL_CACHE.get(address);
+        Channel channel = MyRpcBootstrap.getInstance().getConfigration().getCHANNEL_CACHE().get(address);
         if (channel != null && channel.isActive()) {
             return channel;
         }
         if(channel!=null&&!channel.isActive()){
-            MyRpcBootstrap.CHANNEL_CACHE.remove(address);
+            MyRpcBootstrap.getInstance().getConfigration().getCHANNEL_CACHE().remove(address);
         }
         //  如果在缓存中找不到或缓存中的连接不活跃，则重新创建连接
         try {
@@ -94,9 +96,9 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
                 Channel newChannel = channelFuture.channel();
                 //添加监听器，当连接关闭时，从缓存中移除该连接
                 newChannel.closeFuture().addListener((ChannelFutureListener) future -> {
-                    MyRpcBootstrap.CHANNEL_CACHE.remove(address, newChannel);
+                    MyRpcBootstrap.getInstance().getConfigration().getCHANNEL_CACHE().remove(address, newChannel);
                 });
-                MyRpcBootstrap.CHANNEL_CACHE.put(address, newChannel);
+                MyRpcBootstrap.getInstance().getConfigration().getCHANNEL_CACHE().put(address, newChannel);
                 log.debug("已经和【{}】建立连接: " + address);
                 return newChannel;
             }else{
