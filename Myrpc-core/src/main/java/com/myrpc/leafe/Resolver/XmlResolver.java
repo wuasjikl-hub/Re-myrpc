@@ -1,14 +1,20 @@
 package com.myrpc.leafe.Resolver;
 
+import com.myrpc.leafe.Serialize.Serializer;
+import com.myrpc.leafe.Serialize.SerializerFactory;
+import com.myrpc.leafe.compress.CompressFactory;
+import com.myrpc.leafe.compress.Compressor;
+import com.myrpc.leafe.config.Configration;
 import com.myrpc.leafe.config.RegistryConfig;
-import com.myrpc.leafe.configration.Configration;
 import com.myrpc.leafe.enumeration.CompressorType;
 import com.myrpc.leafe.enumeration.LoadBalancerType;
 import com.myrpc.leafe.enumeration.SerializerType;
 import com.myrpc.leafe.utils.IdGenerator;
+import com.myrpc.leafe.wrapper.ObjectWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -17,7 +23,7 @@ import java.io.InputStream;
 
 @Slf4j
 public class XmlResolver {
-    public void loadFromXml(Configration configuration) {
+    public Boolean loadFromXml(Configration configuration) {
         try {
             // 1. 获取文档
             DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -31,7 +37,7 @@ public class XmlResolver {
 
             if (stream == null) {
                 log.warn("未找到配置文件myrpc.xml，使用默认配置");
-                return;
+                return false;
             }
 
             Document document = builder.parse(stream);
@@ -49,10 +55,10 @@ public class XmlResolver {
 
             String app = parseToStringdef(document, xPath, "/configuration/appName", "default");
             configuration.setApplication(app);
-
+//
             String type = parseToStringdef(document, xPath, "/configuration/serializeType", "type", SerializerType.SERIALIZERTYPE_HESSION.getType());
             configuration.setSerializeType(type);
-
+//
             String compressType = parseToStringdef(document, xPath, "/configuration/compressType", "type", CompressorType.COMPRESSTYPE_GZIP.getType());
             configuration.setCompressType(compressType);
 
@@ -61,16 +67,66 @@ public class XmlResolver {
 
             String registryType = parseToStringdef(document, xPath, "/configuration/registry", "type", "zookeeper");
             String registryAddress = parseToStringdef(document, xPath, "/configuration/registry", "Address", "localhost:2181");
-            log.info("registry:{}", registryType);
+            //log.info("registry:{}", registryType);
             configuration.setRegistryConfig(new RegistryConfig(registryType, registryAddress));
 
             // 4. 验证配置
             ConfigurationValidator.validate(configuration);
-
+            return true;
         } catch (Exception e) {
             log.error("解析配置文件错误", e);
             // 可以选择抛出异常或使用默认配置
             throw new RuntimeException("配置文件解析失败", e);
+        }
+    }
+    private void parseCompressors(Document doc, XPath xpath, String expression){
+        try {
+            XPathExpression compile = xpath.compile(expression);
+            NodeList nodeList = (NodeList)compile.evaluate(doc, XPathConstants.NODESET);
+            for (int i = 0; i < nodeList.getLength(); i++){
+                Node node = nodeList.item(i);// 获取节点
+                byte code = Byte.parseByte(node.getAttributes().getNamedItem("code").getNodeValue());
+                String name = node.getAttributes().getNamedItem("name").getNodeValue();
+                String className = node.getAttributes().getNamedItem("class").getNodeValue();
+                try{
+                    //创建实例
+                    Class<?> aClass = Class.forName(className);
+                    Compressor compressor = (Compressor) aClass.getDeclaredConstructor().newInstance();
+                    ObjectWrapper<Compressor> compressorObjectWrapper = new ObjectWrapper<>(code, name, compressor);
+                    CompressFactory.addCompressor(compressorObjectWrapper);
+                    log.info("添加压缩器: {}", compressorObjectWrapper);
+
+                }catch (Exception e){
+                    log.error("创建实例失败: {}", className, e);
+                }
+            }
+        } catch (XPathExpressionException e) {
+            log.error("解析表达式失败: {}", expression, e);
+        }
+    }
+    private void parseSerializers(Document doc, XPath xpath, String expression){
+        try {
+            XPathExpression compile = xpath.compile(expression);
+            NodeList nodeList = (NodeList)compile.evaluate(doc, XPathConstants.NODESET);
+            for (int i = 0; i < nodeList.getLength(); i++){
+                Node node = nodeList.item(i);// 获取节点
+                byte code = Byte.parseByte(node.getAttributes().getNamedItem("code").getNodeValue());
+                String name = node.getAttributes().getNamedItem("name").getNodeValue();
+                String className = node.getAttributes().getNamedItem("class").getNodeValue();
+                try{
+                    //创建实例
+                    Class<?> aClass = Class.forName(className);
+                    Serializer compressor = (Serializer) aClass.getDeclaredConstructor().newInstance();
+                    ObjectWrapper<Serializer> serializerObjectWrapper = new ObjectWrapper<>(code, name, compressor);
+                    SerializerFactory.addSerializer(serializerObjectWrapper);
+                    log.info("添加序列化器: {}", serializerObjectWrapper);
+
+                }catch (Exception e){
+                    log.error("创建实例失败: {}", className, e);
+                }
+            }
+        } catch (XPathExpressionException e) {
+            log.error("解析表达式失败: {}", expression, e);
         }
     }
 

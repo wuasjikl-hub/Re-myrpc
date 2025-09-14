@@ -53,7 +53,17 @@ public class SerializerFactory {
     }
 
     //暴露添加序列化器的方法
+    //computeIfAbsent只在键不存在时计算新值，适合延迟初始化（如用户代码中的锁对象创建）。
+    //
+    //computeIfPresent只在键存在时计算新值，适合状态更新或清理。
+    //
+    //compute无论键是否存在都计算，适合强制更新或条件删除。
     public static void addSerializer(ObjectWrapper<Serializer> serializerObjectWrapper) {
-        SERIALIZER_CACHE.put(serializerObjectWrapper.getCode(), serializerObjectWrapper);
+        if(serializerObjectWrapper == null){
+            log.error("添加的序列化器不能为空");
+            return;
+        }
+        SERIALIZER_CACHE.computeIfAbsent(serializerObjectWrapper.getCode(), k->serializerObjectWrapper);
+        SERIALIZER_CACHE_ByName.computeIfAbsent(serializerObjectWrapper.getName(), k->serializerObjectWrapper);
     }
 }

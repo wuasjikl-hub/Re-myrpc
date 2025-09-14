@@ -1,12 +1,10 @@
 package com.myrpc.leafe.bootatrap;
 
+import com.myrpc.leafe.Resolver.SpiResolver;
+import com.myrpc.leafe.Resolver.XmlResolver;
 import com.myrpc.leafe.bootatrap.Initializer.NettyServerBootstrapInitializer;
 import com.myrpc.leafe.bootatrap.annotaion.MyrpcScan;
-import com.myrpc.leafe.config.ProtocolConfig;
-import com.myrpc.leafe.config.ReferenceConfig;
-import com.myrpc.leafe.config.RegistryConfig;
-import com.myrpc.leafe.config.ServiceConfig;
-import com.myrpc.leafe.configration.Configration;
+import com.myrpc.leafe.config.*;
 import com.myrpc.leafe.detector.HeartBeatDetector;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -34,10 +32,44 @@ public class MyRpcBootstrap{
      * 应用名
      */
     private final Configration configration;
+    //xml解析器
+    private XmlResolver xmlResolver;
+    //spi解析器
+    private SpiResolver spiResolver;
 
     private MyRpcBootstrap() {
+        //先用SPI机制加载新旧配置
+        spiResolver = new SpiResolver();
+        spiResolver.loadFromSpi();
+
         this.configration = new Configration();
+        try {
+            // 尝试加载XML配置
+            xmlResolver = new XmlResolver();
+            if (xmlResolver.loadFromXml(this.configration)) {
+                log.info("成功加载XML配置");
+            } else {
+                log.warn("XML配置加载失败，使用默认配置");
+                resetToDefaultConfiguration();
+            }
+        } catch (Exception e) {
+            log.error("配置加载过程中发生异常，使用默认配置", e);
+            // 确保配置是默认值
+            resetToDefaultConfiguration();
+        }
         System.out.println("MyRpcBootstrap init");
+    }
+    private void resetToDefaultConfiguration() {
+        Configration defaultConfig = new Configration();
+        this.configration.setPort(defaultConfig.getPort());
+        this.configration.setSerializeType(defaultConfig.getSerializeType());
+        this.configration.setCompressType(defaultConfig.getCompressType());
+        this.configration.setBalancerName(defaultConfig.getBalancerName());
+        this.configration.setApplication(defaultConfig.getApplication());
+        this.configration.setRegistryType(defaultConfig.getRegistryType());
+        this.configration.setRegistryAddress(defaultConfig.getRegistryAddress());
+        this.configration.setIdGenerator(defaultConfig.getIdGenerator());
+        this.configration.setRegistryConfig(defaultConfig.getRegistryConfig());
     }
     /**
      * 设置应用名

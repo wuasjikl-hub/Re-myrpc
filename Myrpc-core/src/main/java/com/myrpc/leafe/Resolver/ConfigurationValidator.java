@@ -1,7 +1,7 @@
 package com.myrpc.leafe.Resolver;
 
 import com.myrpc.leafe.config.RegistryConfig;
-import com.myrpc.leafe.configration.Configration;
+import com.myrpc.leafe.config.Configration;
 import com.myrpc.leafe.enumeration.CompressorType;
 import com.myrpc.leafe.enumeration.LoadBalancerType;
 import com.myrpc.leafe.enumeration.SerializerType;

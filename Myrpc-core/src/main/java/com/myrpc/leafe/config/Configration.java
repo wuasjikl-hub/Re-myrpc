@@ -1,11 +1,7 @@
-package com.myrpc.leafe.configration;
+package com.myrpc.leafe.config;
 
 import com.myrpc.leafe.LoadBalancer.LoadBalanceFactory;
 import com.myrpc.leafe.LoadBalancer.LoadBalancer;
-import com.myrpc.leafe.Resolver.XmlResolver;
-import com.myrpc.leafe.config.ProtocolConfig;
-import com.myrpc.leafe.config.RegistryConfig;
-import com.myrpc.leafe.config.ServiceConfig;
 import com.myrpc.leafe.enumeration.CompressorType;
 import com.myrpc.leafe.enumeration.LoadBalancerType;
 import com.myrpc.leafe.enumeration.SerializerType;
@@ -43,8 +39,10 @@ public class Configration {
     public IdGenerator idGenerator = new IdGenerator(1, 1);
     //注册中心
     private RegistryConfig registryConfig=new RegistryConfig(registryType,registryAddress);
+
     //以上都可以从配置文件中配置
 //--------------------------------------------------------------------
+
     // 协议
     private ProtocolConfig protocol;
     //public static final Map<Long, CompletableFuture<Object>> PENDING_REQUESTS = new ConcurrentHashMap<>();
@@ -63,20 +61,8 @@ public class Configration {
     // 记录每个服务使用了哪些负载均衡器
     private final Map<String, String> serviceToLoadBalancers = new ConcurrentHashMap<>();
 
-    //从配置中读
-    public Configration(){
-        // 3、读取xml获得上边的信息
-        XmlResolver xmlResolver = new XmlResolver();
-        xmlResolver.loadFromXml(this);
-    }
-    public void loadFromXml(Configration configration){
-        try {
-
-
-        }catch (Exception e){
-            log.error("解析配置文件错误",e);
-        }
-    }
+    public Configration(){}
+    // 工厂方法
 
     public static void main(String[] args) {
         Configration configration = new Configration();

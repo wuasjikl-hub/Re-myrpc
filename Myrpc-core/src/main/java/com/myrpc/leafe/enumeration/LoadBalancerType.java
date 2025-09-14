@@ -1,9 +1,9 @@
 package com.myrpc.leafe.enumeration;
 
 public enum LoadBalancerType {
-    LoadBalancerType_ConsistentHash((byte) 0x01,"一致性hash"),
-    LoadBalancerType_MinimumResponseTime((byte) 0x02,"最小响应时间"),
-    LoadBalancerType_RoundRobin((byte) 0x03,"轮询");
+    LoadBalancerType_ConsistentHash((byte) 0x01,"ConsistentHash"),
+    LoadBalancerType_MinimumResponseTime((byte) 0x02,"MinimumResponseTime"),
+    LoadBalancerType_RoundRobin((byte) 0x03,"RoundRobin");
 
     private byte code;
     private String type;

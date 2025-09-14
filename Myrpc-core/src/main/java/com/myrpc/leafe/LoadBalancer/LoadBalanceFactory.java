@@ -32,7 +32,11 @@ public class LoadBalanceFactory {
     }
 
     //暴露添加序列化器的方法
-    public static void addSerializer(ObjectWrapper<LoadBalancer> LoadBalance) {
-        LoadBalancer_CACHE.put(LoadBalance.getName(), LoadBalance);
+    public static void addLoadBalancer(ObjectWrapper<LoadBalancer> LoadBalance) {
+        if(LoadBalance == null){
+            log.error("添加的负载均衡器不能为空");
+            return;
+        }
+        LoadBalancer_CACHE.computeIfAbsent(LoadBalance.getName(), k->LoadBalance);
     }
 }

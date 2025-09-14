@@ -4,6 +4,7 @@ import com.myrpc.leafe.Registry.Registry;
 import com.myrpc.leafe.Serialize.SerializerFactory;
 import com.myrpc.leafe.bootatrap.Initializer.NettyBootstrapInitializer;
 import com.myrpc.leafe.bootatrap.MyRpcBootstrap;
+import com.myrpc.leafe.bootatrap.annotaion.RetryAnno;
 import com.myrpc.leafe.compress.CompressFactory;
 import com.myrpc.leafe.exceptions.LinktoProviderexception;
 import com.myrpc.leafe.packet.client.rpcRequestPacket;
@@ -31,35 +32,66 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        //查看接口方法中是否要求重试
+        int retryCount = 0;//不重试
+        long retryDelay = 0;
+        long maxRetryDelay = 0;
+        RetryAnno annotation = method.getAnnotation(RetryAnno.class);
+        if(annotation != null){
+            retryCount = annotation.retryCount();
+            retryDelay = annotation.retryDelay();
+            maxRetryDelay = annotation.maxRetryDelay();
+        }
+        InetSocketAddress serviceAddress=null;
+        Channel channel=null;
+        while(true) {
+            try {
+                //1.创建rpc请求
+                //先封装负载
+                rpcRequestPacket requestPacket = createrpcRequestPacket(method, args);
+                MyRpcBootstrap.getInstance().getConfigration().getREQUEST_THREAD_LOCAL().set(requestPacket);
+                //2.发现服务
+                serviceAddress = MyRpcBootstrap.getInstance().getConfigration().getLoadBalancer(anInterface.getName()).selectServiceAddress(anInterface.getName());
+                //InetSocketAddress serviceAddress = MyRpcBootstrap.minimumResponseTimeLoadBalancer.selectServiceAddress(anInterface.getName());
+                //InetSocketAddress serviceAddress = MyRpcBootstrap.consistentHashLoadBalancer.selectServiceAddress(anInterface.getName());
 
-        //1.创建rpc请求
-        //先封装负载
-        rpcRequestPacket requestPacket = createrpcRequestPacket(method, args);
-        MyRpcBootstrap.getInstance().getConfigration().getREQUEST_THREAD_LOCAL().set(requestPacket);
-        //2.发现服务
-        InetSocketAddress serviceAddress = MyRpcBootstrap.getInstance().getConfigration().getLoadBalancer(anInterface.getName()).selectServiceAddress(anInterface.getName());
-        //InetSocketAddress serviceAddress = MyRpcBootstrap.minimumResponseTimeLoadBalancer.selectServiceAddress(anInterface.getName());
-        //InetSocketAddress serviceAddress = MyRpcBootstrap.consistentHashLoadBalancer.selectServiceAddress(anInterface.getName());
+                log.info("通过负载均衡获取的服务提供者地址：{}", serviceAddress);
+                //3.从缓存中获取或创建channel
+                channel = getOrCreateChannel(serviceAddress);
 
-        log.info("通过负载均衡获取的服务提供者地址：{}",serviceAddress);
-        //3.从缓存中获取或创建channel
-        Channel channel = getOrCreateChannel(serviceAddress);
-
-        //4.发送请求
-        CompletableFuture<Object> completableFuture = new CompletableFuture<>();
-        //添加监听器，当请求发送成功时，将结果保存到CompletableFuture中
-        MyRpcBootstrap.getInstance().getConfigration().getPNDING_REQUESTS().put(requestPacket.getRequestId(),completableFuture);
-        ChannelFuture channelFuture = channel.writeAndFlush(requestPacket).addListener((ChannelFutureListener) promise->{
-            if(!promise.isSuccess()){
-                log.error("请求服务失败：{}",promise.cause());
-                completableFuture.completeExceptionally(promise.cause());
+                //4.发送请求
+                CompletableFuture<Object> completableFuture = new CompletableFuture<>();
+                //添加监听器，当请求发送成功时，将结果保存到CompletableFuture中
+                MyRpcBootstrap.getInstance().getConfigration().getPNDING_REQUESTS().put(requestPacket.getRequestId(), completableFuture);
+                ChannelFuture channelFuture = channel.writeAndFlush(requestPacket).addListener((ChannelFutureListener) promise -> {
+                    if (!promise.isSuccess()) {
+                        log.error("请求服务失败：{}", promise.cause());
+                        completableFuture.completeExceptionally(promise.cause());
+                    }
+                });
+                //清理ThreadLocal
+                MyRpcBootstrap.getInstance().getConfigration().getREQUEST_THREAD_LOCAL().remove();
+                //5.这里会阻塞，等待客户端调用completed方法返回结果
+                return completableFuture.get(10, TimeUnit.SECONDS);
+                //return null;
+            } catch (Exception e) {
+                retryCount--;
+                if(retryCount <= 0){
+                    log.error("重试次数已用完，请求服务{}失败", anInterface.getName(),e);
+                    channel.close();
+                    break;
+                }
+                //使用指数退避
+                try {
+                    Thread.sleep(Math.min(retryDelay, maxRetryDelay));
+                    retryDelay *= 2;
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
             }
-        });
-        //清理ThreadLocal
-        MyRpcBootstrap.getInstance().getConfigration().getREQUEST_THREAD_LOCAL().remove();
-        //5.这里会阻塞，等待客户端调用completed方法返回结果
-        return completableFuture.get(10, TimeUnit.SECONDS);
-        //return null;
+        }
+        throw new LinktoProviderexception("请求服务失败");
     }
     private rpcRequestPacket createrpcRequestPacket(Method method, Object[] args){
         rpcRequestPayload requestPayload = rpcRequestPayload.builder()
