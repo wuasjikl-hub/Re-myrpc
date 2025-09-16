@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RetryAnno {
-    int retryCount() default 3;
+    int retryCount() default 2;
     long retryDelay() default 100;
-    long maxRetryDelay() default 5000;
+    long maxRetryDelay() default 3000;
 }

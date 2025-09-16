@@ -20,15 +20,10 @@ public class ConsumerApplication {
         //Object object = MyRpcBootstrap.getInstance().getReferenceConfig().get();//获取代理对象
         GreetingService greetingService = referenceConfig.get();
         log.info("==========================================================>");
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 500; i++) {
             log.info("service.hello()"+greetingService.hello("leafe"));
         }
 
-        try {//让主线程不要退出
-            Thread.sleep(1000000);
-        }catch (InterruptedException e)
-        {
-            e.printStackTrace();
-        }
+
     }
 }

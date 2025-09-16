@@ -1,6 +1,8 @@
 package com.myrpc.leafe.Handlers.client;
 
 import com.myrpc.leafe.bootatrap.MyRpcBootstrap;
+import com.myrpc.leafe.enumeration.StatusCode;
+import com.myrpc.leafe.exceptions.RpcResponseException;
 import com.myrpc.leafe.packet.server.rpcResponsePacket;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -21,11 +23,19 @@ public class MessageResponseHandler extends SimpleChannelInboundHandler<rpcRespo
         log.info("收到服务端返回数据:{}",rpcResponsePacket);
         CompletableFuture<Object> res = MyRpcBootstrap.getInstance().getConfigration().getPNDING_REQUESTS().remove(rpcResponsePacket.getRequestId());
         if (res != null) {
-            log.info("服务端回应");
-            res.complete(rpcResponsePacket.getObject());
+            log.info("服务端回应:{}",rpcResponsePacket.getCode());
+            if(rpcResponsePacket.getCode()== StatusCode.SUCCESS.getCode()) {
+                res.complete(rpcResponsePacket.getObject());
+            } else if(rpcResponsePacket.getCode()== StatusCode.BECOLSING.getCode()){
+                res.completeExceptionally(new RpcResponseException(StatusCode.BECOLSING.getCode(), StatusCode.BECOLSING.getType()));
+            }else if(rpcResponsePacket.getCode()== StatusCode.FAIL.getCode()){
+                res.completeExceptionally(new RpcResponseException(StatusCode.FAIL.getCode(), StatusCode.FAIL.getType()));
+            } else if (rpcResponsePacket.getCode()==StatusCode.RATE_LIMIT.getCode()) {
+                log.error("已经被限流");
+                res.completeExceptionally(new RpcResponseException(StatusCode.RATE_LIMIT.getCode(), StatusCode.RATE_LIMIT.getType()));
+            }
         } else {
-            res.completeExceptionally(new Exception("未找到对应的请求"));
+            res.completeExceptionally(new RpcResponseException(StatusCode.RESOURCE_NOT_FOUND.getCode(), StatusCode.RESOURCE_NOT_FOUND.getType()));
         }
-
     }
 }

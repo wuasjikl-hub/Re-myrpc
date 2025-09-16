@@ -23,6 +23,9 @@ public class TokenBarrelRateLimiter implements RateLimiter {
         this.tokens = capacity;
         this.lastRefillTime = System.currentTimeMillis();
     }
+    public TokenBarrelRateLimiter() {
+        this(10, 10);
+    }
 
     @Override
     public synchronized boolean tryAcquire() {

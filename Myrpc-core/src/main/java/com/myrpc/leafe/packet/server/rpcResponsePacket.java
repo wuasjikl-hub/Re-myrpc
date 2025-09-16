@@ -12,11 +12,12 @@ import lombok.NoArgsConstructor;
 public class rpcResponsePacket extends Packet {
     private Object object;
     private byte code;//0成功，1失败
-    public rpcResponsePacket(byte compressType, byte serializeType, long requestId,Object object,byte code){
+    public rpcResponsePacket(byte compressType, byte serializeType, long requestId,byte code,Object object){
         super(compressType, serializeType, requestId);
         super.setRequestType(RequestType.RESPONSE.getCode());
-        this.object = object;
         this.code = code;
+        this.object = object;
+
     }
 
 }

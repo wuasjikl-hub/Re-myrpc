@@ -92,7 +92,7 @@ public class ConsistentHashLoadBalancer extends AbstractLoadBalancer {
                     ((long)(digest[5] & 0xFF) << 16) |
                     ((long)(digest[6] & 0xFF) << 8) |
                     ((long)(digest[7] & 0xFF));
-            log.info("res:"+res);
+            //log.info("res:"+res);
             return res;
         }
 

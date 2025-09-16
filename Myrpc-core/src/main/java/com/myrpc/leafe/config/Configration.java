@@ -6,6 +6,8 @@ import com.myrpc.leafe.enumeration.CompressorType;
 import com.myrpc.leafe.enumeration.LoadBalancerType;
 import com.myrpc.leafe.enumeration.SerializerType;
 import com.myrpc.leafe.packet.client.rpcRequestPacket;
+import com.myrpc.leafe.protection.CircuitBreaker;
+import com.myrpc.leafe.protection.RateLimiter;
 import com.myrpc.leafe.res.HeartBeatResult;
 import com.myrpc.leafe.utils.IdGenerator;
 import io.netty.channel.Channel;
@@ -13,11 +15,11 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.*;
+
 @Slf4j
 @Data
 public class Configration {
@@ -42,7 +44,11 @@ public class Configration {
 
     //以上都可以从配置文件中配置
 //--------------------------------------------------------------------
+// 创建一个包含单个线程的调度线程池
+    ScheduledExecutorService singleThreadScheduler = Executors.newSingleThreadScheduledExecutor();
 
+    // 创建一个包含固定数量线程的调度线程池
+    ScheduledExecutorService multiThreadScheduler = Executors.newScheduledThreadPool(4);
     // 协议
     private ProtocolConfig protocol;
     //public static final Map<Long, CompletableFuture<Object>> PENDING_REQUESTS = new ConcurrentHashMap<>();
@@ -60,7 +66,10 @@ public class Configration {
     private final Map<String, LoadBalancer> loadBalancerCache = new ConcurrentHashMap<>();
     // 记录每个服务使用了哪些负载均衡器
     private final Map<String, String> serviceToLoadBalancers = new ConcurrentHashMap<>();
-
+    //缓存与服务提供者对应的限流器
+    private final Map<SocketAddress, RateLimiter> SERVICE_TO_RATELIMITER = new ConcurrentHashMap<>();
+    //缓存与服务提供者对应的熔断器
+    private final Map<InetSocketAddress, CircuitBreaker> SERVICE_TO_CIRCUITBREAKER = new ConcurrentHashMap<>();
     public Configration(){}
     // 工厂方法
 
@@ -97,4 +106,7 @@ public class Configration {
     }
 
 
+    public ScheduledExecutorService getTimeoutScheduler() {
+        return this.singleThreadScheduler;
+    }
 }

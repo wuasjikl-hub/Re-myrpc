@@ -5,7 +5,6 @@ import com.myrpc.leafe.Resolver.XmlResolver;
 import com.myrpc.leafe.bootatrap.Initializer.NettyServerBootstrapInitializer;
 import com.myrpc.leafe.bootatrap.annotaion.MyrpcScan;
 import com.myrpc.leafe.config.*;
-import com.myrpc.leafe.detector.HeartBeatDetector;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import lombok.extern.slf4j.Slf4j;
@@ -175,7 +174,7 @@ public class MyRpcBootstrap{
     public <T>MyRpcBootstrap reference(ReferenceConfig<T> referenceConfig) {
 
         //在此进行心跳检测
-        HeartBeatDetector.detectHeartBeat(referenceConfig.getInterface().getName());
+        //HeartBeatDetector.detectHeartBeat(referenceConfig.getInterface().getName());
         referenceConfig.setAnRegistry(this.configration.getRegistryConfig().getRegistry());
         return this;
     }
