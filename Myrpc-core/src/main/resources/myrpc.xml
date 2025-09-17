@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration SYSTEM "myrpc-config.dtd">
+<configuration>
+    <Port>8003</Port>
+    <appName>Myrpc-default</appName>
+    <!-- 二选一 -->
+    <serializeType type="HESSION"/>
+    <serializers>
+        <serializer class="com.myrpc.leafe.Serialize.impl.JSONSerializer" name="JSON" code="1"/>
+        <serializer class="com.myrpc.leafe.Serialize.impl.JdkSerializer" name="JDK" code="2"/>
+        <serializer class="com.myrpc.leafe.Serialize.impl.HessionSerializer" name="HESSION" code="3"/>
+    </serializers>
+    <!-- 二选一 -->
+    <compressType type="Gzip"/>
+    <compressors>
+        <compressor class="com.myrpc.leafe.compress.impl.GzipCompressor" name="Gzip" code="1"/>
+    </compressors>
+    <!-- 二选一 -->
+    <loadBalancerType type="ConsistentHash"/>
+    <registry type="zookeeper" Address="localhost:2181"/>
+    <idGenerator class="com.myrpc.leafe.utils.IdGenerator" dataCenterId="2" MachineId="4"/>
+</configuration>

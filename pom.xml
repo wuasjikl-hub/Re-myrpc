@@ -11,6 +11,13 @@
 
     <modules>
         <module>nettytest</module>
+        <module>myrpc-demo</module>
+        <module>myrpc-demo/myrpc-providerdemo</module>
+        <module>myrpc-demo/myrpc-consumerdemo</module>
+        <module>Myrpc-core</module>
+        <module>Myrpc-api</module>
+        <module>myrpc-demo/yrpc-springboot-provider</module>
+        <module>myrpc-demo/yrpc-springboot-consumer</module>
     </modules>
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -18,9 +25,16 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <netty-version>4.1.107.Final</netty-version>
         <junit-version>4.13.2</junit-version>
-        <lombok-version>1.18.22</lombok-version>
+        <lombok.version>1.18.26</lombok.version>
         <fastjson-version>1.2.73</fastjson-version>
         <zookeeper-version>3.8.1</zookeeper-version>
+        <logback-version>1.4.8</logback-version>
+        <commons-lang3.version>3.12.0</commons-lang3.version>
+        <logback.version>1.4.8</logback.version>
+        <fastjson2.version>2.0.26</fastjson2.version>
+        <hession.version>4.0.66</hession.version>
+        <fastjson2.version>2.0.26</fastjson2.version>
+        <guava.version>33.2.1-jre</guava.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -36,9 +50,21 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang3.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
-                <version>${lombok-version}</version>
+                <version>${lombok.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
@@ -50,7 +76,35 @@
                 <artifactId>zookeeper</artifactId>
                 <version>${zookeeper-version}</version>
             </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2</artifactId>
+                <version>${fastjson2.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.caucho</groupId>
+                <artifactId>hessian</artifactId>
+                <version>${hession.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2</artifactId>
+                <version>${fastjson2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+            </dependency>
         </dependencies>
+
     </dependencyManagement>
 
 </project>

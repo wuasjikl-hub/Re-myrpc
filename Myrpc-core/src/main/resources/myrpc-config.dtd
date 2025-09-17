@@ -1,0 +1,50 @@
+<?xml version="2.0" encoding="UTF-8" ?>
+        <!ELEMENT configuration ANY>
+        <!ELEMENT Port ANY>
+        <!ELEMENT appName ANY>
+        <!ELEMENT registry EMPTY>
+        <!ATTLIST registry
+                type CDATA #REQUIRED
+                Address CDATA #REQUIRED
+                >
+        <!ELEMENT serializers (serializer+)>
+        <!ELEMENT serializer EMPTY>
+        <!ATTLIST serializer
+                class CDATA #REQUIRED
+                name CDATA #REQUIRED
+                code CDATA #REQUIRED
+                >
+        <!ELEMENT serializeType EMPTY>
+        <!ATTLIST serializeType
+                type CDATA #REQUIRED
+                >
+                                    <!--表示可添加一个或多个compressor-->
+        <!ELEMENT compressors (compressor+)>
+        <!ELEMENT compressor EMPTY>
+        <!ATTLIST compressor
+                class CDATA #REQUIRED
+                name CDATA #REQUIRED
+                code CDATA #REQUIRED
+                >
+        <!ELEMENT compressType EMPTY>
+        <!ATTLIST compressType
+                type CDATA #REQUIRED
+                >
+        <!ELEMENT loadbalancers (loadbalancer+)>
+        <!ELEMENT loadbalancer EMPTY>
+        <!ATTLIST loadbalancer
+                class CDATA #REQUIRED
+                name CDATA #REQUIRED
+                code CDATA #REQUIRED
+                >
+        <!ELEMENT loadBalancerType EMPTY>
+        <!ATTLIST loadBalancerType
+                type CDATA #REQUIRED
+                >
+        <!ELEMENT idGenerator EMPTY>
+        <!ATTLIST idGenerator
+                class CDATA #REQUIRED
+                dataCenterId CDATA #REQUIRED
+                MachineId CDATA #REQUIRED
+                >
+
