@@ -18,5 +18,5 @@ public interface Registry {
      * @param serviceConfig
      */
     <T>void register(ServiceConfig<T> serviceConfig);
-    List<InetSocketAddress> discovery(String serviceName);
+    List<InetSocketAddress> discovery(String serviceName,String group);
 }

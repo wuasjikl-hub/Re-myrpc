@@ -27,6 +27,7 @@ public class MessageResponseHandler extends SimpleChannelInboundHandler<rpcRespo
             if(rpcResponsePacket.getCode()== StatusCode.SUCCESS.getCode()) {
                 res.complete(rpcResponsePacket.getObject());
             } else if(rpcResponsePacket.getCode()== StatusCode.BECOLSING.getCode()){
+                log.error("服务正在关闭:{}",rpcResponsePacket.getCode());
                 res.completeExceptionally(new RpcResponseException(StatusCode.BECOLSING.getCode(), StatusCode.BECOLSING.getType()));
             }else if(rpcResponsePacket.getCode()== StatusCode.FAIL.getCode()){
                 res.completeExceptionally(new RpcResponseException(StatusCode.FAIL.getCode(), StatusCode.FAIL.getType()));

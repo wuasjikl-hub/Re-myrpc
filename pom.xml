@@ -16,6 +16,8 @@
         <module>myrpc-demo/myrpc-consumerdemo</module>
         <module>Myrpc-core</module>
         <module>Myrpc-api</module>
+        <module>myrpc-demo/yrpc-springboot-provider</module>
+        <module>myrpc-demo/yrpc-springboot-consumer</module>
     </modules>
     <properties>
         <maven.compiler.source>17</maven.compiler.source>

@@ -72,13 +72,36 @@ public class ZookeeperUtils {
             throw new ZookeeperException();
         }
     }
-    /**
-     * 判断节点是否存在
-     * @param zk
-     * @param node
-     * @param watcher
-     * @return
-     */
+    public static Boolean deleteNode(ZooKeeper zookeeper, String nodePath, Watcher watcher){
+        try{
+            if(zookeeper.exists(nodePath,watcher) != null){
+                zookeeper.delete(nodePath, -1);
+                log.info("节点删除成功：" + nodePath);
+                return true;
+            }else{
+                log.info("节点不存在，无需删除：" + nodePath);
+                return false;
+            }
+        }catch (KeeperException | InterruptedException e) {
+            log.error("删除节点时发生异常：", e);
+            throw new ZookeeperException();
+        }
+    }
+    public static void deleteNodeRecursive(ZooKeeper zookeeper, String nodePath) throws Exception {
+        List<String> children = zookeeper.getChildren(nodePath, false);
+        for (String child : children) {
+            String childpath=nodePath+"/"+child;
+            deleteNodeRecursive(zookeeper, childpath);
+        }
+        zookeeper.delete(nodePath,-1);
+    }
+        /**
+         * 判断节点是否存在
+         * @param zk
+         * @param node
+         * @param watcher
+         * @return
+         */
     public static boolean exists(ZooKeeper zk,String node,Watcher watcher){
         try {
             return zk.exists(node,watcher) != null;

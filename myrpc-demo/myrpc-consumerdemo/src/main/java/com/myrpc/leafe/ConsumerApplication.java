@@ -16,12 +16,18 @@ public class ConsumerApplication {
                 .registry()//注册中心
                 .compress(CompressorType.COMPRESSTYPE_GZIP.getType())
                 .serialize(SerializerType.SERIALIZERTYPE_HESSION.getType())
+                .Group("Primary")
                 .reference(referenceConfig);    //引用服务
         //Object object = MyRpcBootstrap.getInstance().getReferenceConfig().get();//获取代理对象
         GreetingService greetingService = referenceConfig.get();
         log.info("==========================================================>");
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 5; i++) {
             log.info("service.hello()"+greetingService.hello("leafe"));
+        }
+        try {
+            Thread.sleep(1000000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
 
 

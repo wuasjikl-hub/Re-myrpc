@@ -6,8 +6,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageCodec;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+@Slf4j
 @ChannelHandler.Sharable
 public class PacketCodecHandler extends MessageToMessageCodec<ByteBuf, Packet> {
     public static final PacketCodecHandler INSTANCE = new PacketCodecHandler();
@@ -18,13 +20,21 @@ public class PacketCodecHandler extends MessageToMessageCodec<ByteBuf, Packet> {
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> out) {
-        out.add(PacketCodec.INSTANCE.decode(byteBuf));
+        try {
+            out.add(PacketCodec.INSTANCE.decode(byteBuf));
+        }catch (Exception e){
+            log.error("解码异常",e);
+        }
     }
 
     @Override
     protected void encode(ChannelHandlerContext ctx, Packet packet, List<Object> out) {
         ByteBuf byteBuf = ctx.channel().alloc().ioBuffer();
-        PacketCodec.INSTANCE.encode(byteBuf, packet);
+        try {
+            PacketCodec.INSTANCE.encode(byteBuf, packet);
+        } catch (Exception e) {
+            log.error("编码异常", e);
+        }
         out.add(byteBuf);
     }
 }

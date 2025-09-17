@@ -23,6 +23,8 @@ import java.util.concurrent.*;
 @Slf4j
 @Data
 public class Configration {
+    //分组
+    private String Groupinfo="default";
     //服务提供方默认端口
     private int Port=8002;
     //序列化类型

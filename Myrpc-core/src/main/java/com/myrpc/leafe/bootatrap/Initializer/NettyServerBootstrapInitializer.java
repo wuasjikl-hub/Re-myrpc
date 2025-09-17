@@ -45,8 +45,26 @@ public class NettyServerBootstrapInitializer {
                 });
         //添加JVM关闭钩子
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            bossGroup.shutdownGracefully();
-            workerGroup.shutdownGracefully();
+            log.info("开始优雅关闭服务器...");
+            //1.打开挡板
+            ShutdownHolder.isShutdown.set(true);
+            long start = System.currentTimeMillis();
+
+            //2.等待计数器归零
+           while(true){
+               try {
+                   Thread.sleep(100);
+               } catch (InterruptedException e) {
+                   throw new RuntimeException(e);
+               }
+               //等待请求结束
+               if(ShutdownHolder.longAdder.sum()==0
+                       || System.currentTimeMillis() - start > 10000){
+                   bossGroup.shutdownGracefully();
+                   workerGroup.shutdownGracefully();
+                   break;
+               }
+           }
         }));
     }
     public static NettyServerBootstrapInitializer getInstance() {

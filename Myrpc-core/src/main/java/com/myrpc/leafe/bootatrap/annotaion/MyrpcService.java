@@ -5,9 +5,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.TYPE)// 注解作用在类上
-@Retention(RetentionPolicy.RUNTIME)// 注解保留在运行时
-public @interface MyrpcScan {
-    String Group() default "default";
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface MyrpcService {
 
 }

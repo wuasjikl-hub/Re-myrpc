@@ -1,5 +1,6 @@
 package com.myrpc.leafe.Handlers.server;
 
+import com.myrpc.leafe.bootatrap.Initializer.ShutdownHolder;
 import com.myrpc.leafe.bootatrap.MyRpcBootstrap;
 import com.myrpc.leafe.config.ServiceConfig;
 import com.myrpc.leafe.enumeration.StatusCode;
@@ -28,13 +29,22 @@ public class MethodCallHandler extends SimpleChannelInboundHandler<rpcRequestPac
         RateLimiter rateLimiter = rateLimiterMap.computeIfAbsent
                 (socketAddress, k -> new TokenBarrelRateLimiter());
         StatusCode statusCode = StatusCode.SUCCESS;
+        //2.查看挡板状态
+        if(ShutdownHolder.isShutdown.get()){
+            statusCode=StatusCode.BECOLSING;
+            log.error("服务正在被关闭{}",socketAddress);
+            rpcResponsePacket responsePacket = createResponsePacket(requestPacket, statusCode, null);
+            channelHandlerContext.writeAndFlush(responsePacket);
+            return;
+        }
+        //计数器加1
+        ShutdownHolder.longAdder.increment();
         //3.封装响应
         //判断限流
         if(!rateLimiter.tryAcquire()){
             statusCode = StatusCode.RATE_LIMIT;
             log.error("Rate limit exceeded for address: {}", socketAddress);
             rpcResponsePacket responsePacket = createResponsePacket(requestPacket, statusCode, null);
-            log.error("rpc:{}",responsePacket.getCode());
             channelHandlerContext.writeAndFlush(responsePacket);
             return;
         }
@@ -52,6 +62,8 @@ public class MethodCallHandler extends SimpleChannelInboundHandler<rpcRequestPac
 
         //4.发送响应
         channelHandlerContext.writeAndFlush(responsePacket);
+        //5.计数器减1
+        ShutdownHolder.longAdder.decrement();
     }
     private rpcResponsePacket createResponsePacket(rpcRequestPacket requestPacket,
                                                    StatusCode statusCode, Object result) {

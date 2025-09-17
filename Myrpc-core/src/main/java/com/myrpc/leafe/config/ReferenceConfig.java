@@ -11,11 +11,12 @@ public class ReferenceConfig<T> {
     private Class<T> anInterface;//接口
 
     private Registry anRegistry;//注册中心
+    private String groupinfo;
     public T get() {
         //这里用动态代理生成代理对象
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         Class[] classes = new Class[]{anInterface};
-        RPCConsumerInvocationHandler rpcConsumerInvocationHandler = new RPCConsumerInvocationHandler(anInterface, anRegistry);
+        RPCConsumerInvocationHandler rpcConsumerInvocationHandler = new RPCConsumerInvocationHandler(anInterface, anRegistry,groupinfo);
         Object object=Proxy.newProxyInstance(classLoader, classes, rpcConsumerInvocationHandler);
         return (T)object;
     }
@@ -33,5 +34,12 @@ public class ReferenceConfig<T> {
 
     public void setAnRegistry(Registry anRegistry) {
         this.anRegistry = anRegistry;
+    }
+
+    public void setGroupinfo(String groupinfo) {
+        this.groupinfo = groupinfo;
+    }
+    public String getGroupinfo() {
+        return groupinfo;
     }
 }

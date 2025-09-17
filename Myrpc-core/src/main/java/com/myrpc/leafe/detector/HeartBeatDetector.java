@@ -1,9 +1,11 @@
 package com.myrpc.leafe.detector;
 
+import com.myrpc.leafe.Registry.Registry;
 import com.myrpc.leafe.Serialize.SerializerFactory;
 import com.myrpc.leafe.bootatrap.Initializer.NettyBootstrapInitializer;
 import com.myrpc.leafe.bootatrap.MyRpcBootstrap;
 import com.myrpc.leafe.compress.CompressFactory;
+import com.myrpc.leafe.exceptions.NotFoundedEnableNodeException;
 import com.myrpc.leafe.packet.heartBeat.heartBeatPacket;
 import com.myrpc.leafe.res.HeartBeatResult;
 import io.netty.channel.Channel;
@@ -13,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.concurrent.*;
@@ -69,7 +72,7 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
 );
     // 用于跟踪已调度的任务
     private static ScheduledFuture<?> scheduledTask;
-    public static void detectHeartBeat(String serviceName) {
+    public static void detectHeartBeat(String serviceName,String group) {
 //        if (timer != null) {
 //            log.debug("心跳检测器已在运行，忽略重复启动");
 //            return;
@@ -105,7 +108,7 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
             });
             // 调度任务，，之后每5秒执行一次
             scheduledTask = scheduler.scheduleAtFixedRate(
-                    new HeartBeatRunnable(serviceName),
+                    new HeartBeatRunnable(serviceName,group),
                     0,
                     5000,
                     TimeUnit.MILLISECONDS
@@ -156,9 +159,11 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
 
     private static class HeartBeatRunnable implements Runnable {
         private final String serviceName;
+        private final String group;
 
-        public HeartBeatRunnable(String serviceName) {
+        public HeartBeatRunnable(String serviceName,String group) {
             this.serviceName = serviceName;
+            this.group = group;
         }
 
         @Override
@@ -168,8 +173,18 @@ private static final ExecutorService HEARTBEAT_EXECUTOR = new ThreadPoolExecutor
                     log.debug("开始执行心跳检测");
                 }
                 //先获取服务提供者地址
-                List<InetSocketAddress> addresses = MyRpcBootstrap.getInstance().getConfigration().getRegistryConfig()
-                        .getRegistry().discovery(serviceName);
+                List<InetSocketAddress> addresses =null;
+
+                Registry registry = MyRpcBootstrap.getInstance().getConfigration().getRegistryConfig().getRegistry();
+                try {
+                    addresses = registry.discovery(serviceName, group);
+                } catch (NotFoundedEnableNodeException e) {
+                    log.warn("没有可用的服务提供者地址: {}", e.getMessage());
+                    addresses = Collections.emptyList();
+                } catch (Exception e) {
+                    log.error("服务发现失败", e);
+                    addresses = Collections.emptyList();
+                }
                 if(addresses == null || addresses.isEmpty()){
                     log.warn("没有可用的服务提供者地址");
                 }

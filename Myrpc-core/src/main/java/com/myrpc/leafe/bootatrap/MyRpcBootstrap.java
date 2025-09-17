@@ -5,6 +5,7 @@ import com.myrpc.leafe.Resolver.XmlResolver;
 import com.myrpc.leafe.bootatrap.Initializer.NettyServerBootstrapInitializer;
 import com.myrpc.leafe.bootatrap.annotaion.MyrpcScan;
 import com.myrpc.leafe.config.*;
+import com.myrpc.leafe.detector.HeartBeatDetector;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import lombok.extern.slf4j.Slf4j;
@@ -172,10 +173,11 @@ public class MyRpcBootstrap{
     }
 
     public <T>MyRpcBootstrap reference(ReferenceConfig<T> referenceConfig) {
+        referenceConfig.setGroupinfo(this.configration.getGroupinfo());
+        referenceConfig.setAnRegistry(this.configration.getRegistryConfig().getRegistry());
 
         //在此进行心跳检测
-        //HeartBeatDetector.detectHeartBeat(referenceConfig.getInterface().getName());
-        referenceConfig.setAnRegistry(this.configration.getRegistryConfig().getRegistry());
+        HeartBeatDetector.detectHeartBeat(referenceConfig.getInterface().getName(),referenceConfig.getGroupinfo());
         return this;
     }
     public MyRpcBootstrap scan(String packgeName) {
@@ -196,7 +198,6 @@ public class MyRpcBootstrap{
             try {
                 Class<?>[] interfaces = clazz.getInterfaces();
                 Object object = clazz.getDeclaredConstructor().newInstance();
-
                 List<ServiceConfig<?>> ServiceConfiglist = new ArrayList<>();
                 for (Class<?> anInterface : interfaces) {
                     ServiceConfig<Object> ServiceConfig = new ServiceConfig<>();
@@ -204,6 +205,10 @@ public class MyRpcBootstrap{
                     Class<Object>interfaceType =(Class<Object>)anInterface;
                     ServiceConfig.setInterface(interfaceType);
                     ServiceConfig.setRef(object);
+                    //设置服务分组
+                    MyrpcScan annotation = clazz.getAnnotation(MyrpcScan.class);
+                    String group = annotation.Group();
+                    ServiceConfig.setGroupinfo(group);
                     ServiceConfiglist.add(ServiceConfig);
                 }
                 service(ServiceConfiglist);
@@ -282,6 +287,14 @@ public class MyRpcBootstrap{
         this.configration.setCompressType(compressType);
         if (log.isDebugEnabled()) {
             log.debug("我们配置了使用的压缩算法为【{}】.", compressType);
+        }
+        return this;
+    }
+
+    public MyRpcBootstrap Group(String primary) {
+        this.configration.setGroupinfo(primary);
+        if (log.isDebugEnabled()) {
+            log.debug("我们配置了使用的组名为【{}】.", primary);
         }
         return this;
     }

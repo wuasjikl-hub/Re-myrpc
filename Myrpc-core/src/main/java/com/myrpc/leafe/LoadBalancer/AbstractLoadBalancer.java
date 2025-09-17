@@ -21,9 +21,9 @@ public abstract class AbstractLoadBalancer implements LoadBalancer{
     private Map<String,Selector> SelectorCache=new ConcurrentHashMap<>(8);
 
     @Override
-    public InetSocketAddress selectServiceAddress(String serviceName) {
+    public InetSocketAddress selectServiceAddress(String serviceName,String group) {
         Selector selector=SelectorCache.computeIfAbsent(serviceName
-                ,this::createSelector
+                ,k->createSelector(serviceName,group)
         );
         if(selector==null){
             log.error("Selector is null for service: {}", serviceName);
@@ -37,9 +37,9 @@ public abstract class AbstractLoadBalancer implements LoadBalancer{
             throw new LoadBalanceException("Error selecting service address for: " + serviceName, e);
         }
     }
-    private Selector createSelector(String serviceName) {
+    private Selector createSelector(String serviceName,String group) {
         // 获取服务地址列表
-        List<InetSocketAddress> addresses = discoverServices(serviceName);
+        List<InetSocketAddress> addresses = discoverServices(serviceName,group);
 
         if (addresses == null || addresses.isEmpty()) {
             throw new LoadBalanceException("找不到服务" + serviceName);
@@ -58,12 +58,12 @@ public abstract class AbstractLoadBalancer implements LoadBalancer{
             SelectorCache.put(serviceName,getSelector(addresses));
         }
     }
-    private List<InetSocketAddress> discoverServices(String serviceName) {
+    private List<InetSocketAddress> discoverServices(String serviceName,String group) {
         return MyRpcBootstrap.getInstance()
                 .getConfigration()
                 .getRegistryConfig()
-                .getRegistry()
-                .discovery(serviceName);
+                .getRegistry().discovery(serviceName,group);
+
     }
     protected abstract Selector getSelector(List<InetSocketAddress> serviceAddresses);
 }

@@ -50,6 +50,7 @@ public class NettyBootstrapInitializer {
                 });
         // 注册关闭钩子
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            log.info("开始关闭客户端...");
             group.shutdownGracefully();
             List<Channel> channels = new ArrayList<>(MyRpcBootstrap.getInstance().getConfigration().getCHANNEL_CACHE().values());
             // 然后立即清空缓存，防止新的操作如增加新的缓存

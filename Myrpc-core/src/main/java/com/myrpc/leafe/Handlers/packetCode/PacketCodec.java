@@ -38,7 +38,6 @@ public class PacketCodec {
         try {
             // 1. 先获取有效负载
             Object payload = extractPayload(packet);
-
             // 先序列化和压缩包
             byte[] body = null;
             if (payload != null) {
@@ -93,7 +92,6 @@ public class PacketCodec {
                     return;
                 }
             }
-
             // 写入body
             if (body != null) {
                 byteBuf.writeBytes(body);
@@ -107,6 +105,8 @@ public class PacketCodec {
             return ((rpcRequestPacket) packet).getPayload();
         } else if (packet instanceof rpcResponsePacket) {
             return ((rpcResponsePacket) packet).getObject();
+        }else if(packet instanceof heartBeatPacket){
+            return null;
         }
         throw new IllegalArgumentException("Unsupported packet type: " + packet.getClass().getName());
     }

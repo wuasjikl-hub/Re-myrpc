@@ -26,10 +26,12 @@ import java.util.concurrent.*;
 public class RPCConsumerInvocationHandler implements InvocationHandler {
     private final Class<?> anInterface;//接口
     private final Registry anRegistry;//注册中心
+    private String groupinfo;
 
-    public RPCConsumerInvocationHandler(Class<?> anInterface, Registry anRegistry) {
+    public RPCConsumerInvocationHandler(Class<?> anInterface, Registry anRegistry,String groupinfo) {
         this.anInterface = anInterface;
         this.anRegistry = anRegistry;
+        this.groupinfo=groupinfo;
     }
 
     @Override
@@ -46,7 +48,7 @@ public class RPCConsumerInvocationHandler implements InvocationHandler {
         MyRpcBootstrap.getInstance().getConfigration().getREQUEST_THREAD_LOCAL().set(requestPacket);
         //2.发现服务
         InetSocketAddress serviceAddress = MyRpcBootstrap.getInstance().getConfigration()
-                .getLoadBalancer(anInterface.getName()).selectServiceAddress(anInterface.getName());
+                .getLoadBalancer(anInterface.getName()).selectServiceAddress(anInterface.getName(),groupinfo);
         log.info("通过负载均衡获取的服务提供者地址：{}", serviceAddress);
         //3.从缓存中获取或创建channel
         Channel channel = getOrCreateChannel(serviceAddress);

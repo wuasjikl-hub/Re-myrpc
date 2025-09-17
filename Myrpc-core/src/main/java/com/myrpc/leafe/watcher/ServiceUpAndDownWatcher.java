@@ -42,7 +42,7 @@ public class ServiceUpAndDownWatcher implements Watcher {
                 synchronized (lockWrapper.lock){
                     Registry registry = MyRpcBootstrap.getInstance()
                             .getConfigration().getRegistryConfig().getRegistry();
-                    List<InetSocketAddress> addresses = registry.discovery(serviceName);
+                    List<InetSocketAddress> addresses = registry.discovery(serviceName,MyRpcBootstrap.getInstance().getConfigration().getGroupinfo());
                     for (InetSocketAddress address : addresses) {
                         handleAddress( address);
                     }
